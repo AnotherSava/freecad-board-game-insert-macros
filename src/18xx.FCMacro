@@ -1,0 +1,17 @@
+import FreeCAD
+import importlib
+
+from Inserts import components
+importlib.reload(components)
+
+from Inserts import hextiles
+importlib.reload(hextiles)
+
+document = FreeCAD.newDocument('18xx')
+# FreeCAD.Gui.activeDocument().activeView().viewIsometric()
+FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
+
+# components.create_insert()
+hextiles.create_hex_board(2, 6, 28, 4, 6, 1, 8, 0.8)
+
+FreeCAD.Gui.SendMsgToActiveView('ViewFit')
