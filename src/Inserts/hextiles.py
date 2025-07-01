@@ -1,22 +1,44 @@
-import FreeCAD
+from FreeCAD import Vector
 import Part
-import math
-from enum import Enum
+from math import tan, sqrt, cos, sin, radians
+from enum import Enum, auto
+from dataclasses import dataclass
 
+class HexTimeShiftDirection(Enum):
+    UP = auto()
+    DOWN = auto()
+
+@dataclass
+class GridConfiguration:
+    firstColumnHexCount: int
+    secondColumnHexCount: int
+    columnsTotal: int
+    shiftDirection: HexTimeShiftDirection = None # only applicable if secondColumnCount == firstColumnCount
+
+@dataclass
+class GridDimensions:
+    hexWidth: float
+    pinWidth: float
+    pinLength: float
+    pinRadius: float
+    pinHeight: float
+    boardHeight: float
+
+# value represents angle (CCW from y axis)
 class HexPinSide(Enum):
     TOP = 0
-    RIGHT = 1
-    LEFT = 2
+    LEFT = 120
+    RIGHT = 240
 
 def create_hex_pin(width, length, radius, skip = None):
-    a = width / 2 * math.tan(math.radians(30))
-    centre = FreeCAD.Vector(0, 0, 0)
-    z_axis = FreeCAD.Vector(0, 0, 1)
-    translate = FreeCAD.Vector(0, a, 0)
+    a = width / 2 * tan(radians(30))
+    centre = Vector(0, 0, 0)
+    z_axis = Vector(0, 0, 1)
+    translate = Vector(0, a, 0)
 
     edges = []
-    for side in HexPinSide:
-        angle = -120 * side.value
+    for side in [HexPinSide.TOP, HexPinSide.RIGHT, HexPinSide.LEFT]: # order is important
+        angle = side.value
         wire = create_rounded_side_wire(width, length, radius, skip == side)
         wire.translate(translate)
         wire.rotate(centre, z_axis, angle)
@@ -25,21 +47,21 @@ def create_hex_pin(width, length, radius, skip = None):
     return Part.Wire(edges)
 
 def create_rounded_side_wire(width, length, radius, skip = False):
-    x = radius * math.cos(math.radians(45))
+    x = radius * cos(radians(45))
     delta = radius - x
 
-    v1 = FreeCAD.Vector(-width / 2, 0, 0)
+    v1 = Vector(-width / 2, 0, 0)
 
-    v2 = FreeCAD.Vector(-width / 2, length - radius, 0)
-    v23 = FreeCAD.Vector(-width / 2 + delta, length - delta, 0)
-    v3 = FreeCAD.Vector(-width / 2 + radius, length, 0)
+    v2 = Vector(-width / 2, length - radius, 0)
+    v23 = Vector(-width / 2 + delta, length - delta, 0)
+    v3 = Vector(-width / 2 + radius, length, 0)
 
-    v4 = FreeCAD.Vector(width / 2 - radius, length, 0)
-    v45 = FreeCAD.Vector(width / 2 - delta, length - delta, 0)
-    v5 = FreeCAD.Vector(width / 2, length - radius, 0)
+    v4 = Vector(width / 2 - radius, length, 0)
+    v45 = Vector(width / 2 - delta, length - delta, 0)
+    v5 = Vector(width / 2, length - radius, 0)
 
-    v6 = FreeCAD.Vector(width / 2, 0, 0)
-    v61 = FreeCAD.Vector(0, width * (2 - math.sqrt(3)) / 2, 0)
+    v6 = Vector(width / 2, 0, 0)
+    v61 = Vector(0, width * (2 - sqrt(3)) / 2, 0)
 
     edges = [Part.Arc(v6, v61, v1).toShape()] if skip else [
         Part.LineSegment(v1, v2).toShape(),
@@ -51,52 +73,39 @@ def create_rounded_side_wire(width, length, radius, skip = False):
 
     return Part.Wire(edges)
 
-def create_hex_board(count_y, count_x, hex_width, pin_width, pin_length, pin_radius, pin_height, board_height):
+def create_hex_board(configuration: GridConfiguration, dimensions: GridDimensions):
     # distance between adjacent hex tile centres
-    hex_centre_distance = hex_width + pin_width
+    hex_centre_distance = dimensions.hexWidth + dimensions.pinWidth
 
     # distance between adjacent hex tile centres on axis x
-    hex_centre_distance_x = hex_centre_distance * math.cos(math.radians(60))
+    hex_centre_distance_x = hex_centre_distance * cos(radians(60))
 
     # distance between adjacent hex tile centres on axis y
-    hex_centre_distance_y = hex_centre_distance * math.sin(math.radians(60))
+    hex_centre_distance_y = hex_centre_distance * sin(radians(60))
 
-    for column in range(0, count_x + 2):
+    for column in range(0, configuration.columnsTotal + 2):
         y_shift = 0 if column % 2 == 0 else hex_centre_distance_y
 
-        for row in range(0, count_y):
+        for row in range(0, configuration.firstColumnHexCount):
             skip = HexPinSide.LEFT if column == 0 \
-                else HexPinSide.RIGHT if column == count_x + 1 \
-                else HexPinSide.TOP if row == count_y - 1 and column % 2 == 1 \
+                else HexPinSide.RIGHT if column == configuration.columnsTotal + 1 \
+                else HexPinSide.TOP if row == configuration.firstColumnHexCount - 1 and column % 2 == 1 \
                 else None
-            wire = create_hex_pin(pin_width, pin_length, pin_radius, skip)
-            wire.translate(FreeCAD.Vector(column * hex_centre_distance_x, y_shift + row * hex_centre_distance_y * 2))
+            wire = create_hex_pin(dimensions.pinWidth, dimensions.pinLength, dimensions.pinRadius, skip)
+            wire.translate(Vector(column * hex_centre_distance_x, y_shift + row * hex_centre_distance_y * 2))
             face = Part.Face(wire)
-            solid = face.extrude(FreeCAD.Vector(0, 0, pin_height))  # Extrude to make a solid (height=1mm)
+            solid = face.extrude(Vector(0, 0, dimensions.pinHeight))  # Extrude to make a solid (height=1mm)
 
             frame_feature = Part.show(solid, f"pin {column}-{row}")
             frame_feature.ViewObject.ShapeColor = (0.2, 0.6, 0.8)
 
-    hex_y = 2 * hex_width * math.tan(math.radians(30))
+    hex_y = 2 * dimensions.hexWidth * tan(radians(30))
 
-    board_x = hex_centre_distance_x * (count_x + 1) + pin_width
-    board_y = hex_y + hex_centre_distance_y * 2 * (count_y - 1) + pin_width / 2 * math.tan(math.radians(60)) + pin_width * (2 - math.sqrt(3)) / 2
-    board_pos = FreeCAD.Vector(-pin_width / 2, pin_width / 2 * math.tan(math.radians(30)) - hex_width / 2 * math.tan(math.radians(30)), -board_height)
-    box = Part.makeBox(board_x, board_y, board_height, board_pos)
+    board_x = hex_centre_distance_x * (configuration.columnsTotal + 1) + dimensions.pinWidth
+    board_y = hex_y + hex_centre_distance_y * 2 * (
+            configuration.firstColumnHexCount - 1) + dimensions.pinWidth / 2 * tan(
+        radians(60)) + dimensions.pinWidth * (2 - sqrt(3)) / 2
+    board_pos = Vector(-dimensions.pinWidth / 2, dimensions.pinWidth / 2 * tan(radians(30)) - dimensions.hexWidth / 2 * tan(radians(30)), -dimensions.boardHeight)
+    box = Part.makeBox(board_x, board_y, dimensions.boardHeight, board_pos)
     frame_feature = Part.show(box, "box")
     frame_feature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
-
-
-def create_object(width, length, height, radius):
-    # wire = make_rounded_side(width, length, 3, True)
-    wire = create_hex_pin(width, length, radius)
-    face = Part.Face(wire)
-
-    # face = create_face(width, length)
-    # face = make_rectangle()
-    # face = Part.Face(wire)
-
-    solid = face.extrude(FreeCAD.Vector(0, 0, height))  # Extrude to make a solid (height=1mm)
-
-    frame_feature = Part.show(solid, 'test object')
-    frame_feature.ViewObject.ShapeColor = (0.2, 0.6, 0.8)

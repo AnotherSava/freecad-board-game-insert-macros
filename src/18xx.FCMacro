@@ -5,6 +5,7 @@ from Inserts import components
 importlib.reload(components)
 
 from Inserts import hextiles
+from Inserts.hextiles import GridConfiguration, GridDimensions
 importlib.reload(hextiles)
 
 document = FreeCAD.newDocument('18xx')
@@ -12,6 +13,6 @@ document = FreeCAD.newDocument('18xx')
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 # components.create_insert()
-hextiles.create_hex_board(2, 6, 28, 4, 6, 1, 8, 0.8)
+hextiles.create_hex_board(GridConfiguration(2, 1, 6), GridDimensions(28, 4, 6, 1, 8, 0.8))
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')
