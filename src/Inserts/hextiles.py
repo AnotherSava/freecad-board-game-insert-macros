@@ -24,6 +24,18 @@ class GridDimensions:
     pinHeight: float
     boardHeight: float
 
+    # distance between adjacent hex tile centres
+    def getHexCentreDistance(self):
+        return self.hexWidth + self.pinWidth
+
+    # distance between adjacent hex tile centres on axis x
+    def getHexCentreDistanceX(self):
+        return self.getHexCentreDistance() * cos(radians(60))
+
+    # distance between adjacent hex tile centres on axis y
+    def getHexCentreDistanceY(self):
+        return self.getHexCentreDistance() * sin(radians(60))
+
 # value represents angle (CCW from y axis)
 class HexPinSide(Enum):
     TOP = 0
@@ -35,23 +47,19 @@ class HexBoard:
         self.configuration = configuration
         self.dimensions = dimensions
 
-    def createHexPin(self, skip = None):
+    def createPinWire(self, skip = None):
         a = self.dimensions.pinWidth / 2 * tan(radians(30))
-        centre = Vector(0, 0, 0)
-        z_axis = Vector(0, 0, 1)
-        translate = Vector(0, a, 0)
-
         edges = []
         for side in [HexPinSide.TOP, HexPinSide.RIGHT, HexPinSide.LEFT]: # order is important
             angle = side.value
-            wire = self.createRoundedSideWire(skip == side)
-            wire.translate(translate)
-            wire.rotate(centre, z_axis, angle)
+            wire = self.createPinRayWire(skip == side)
+            wire.translate(Vector(0, a, 0))
+            wire.rotate(Vector(0, 0, 0), Vector(0, 0, 1), angle)
             edges += list(wire.Edges)
 
         return Part.Wire(edges)
 
-    def createRoundedSideWire(self, skip = False):
+    def createPinRayWire(self, skip = False):
         x = self.dimensions.pinRadius * cos(radians(45))
         delta = self.dimensions.pinRadius - x
 
@@ -78,41 +86,35 @@ class HexBoard:
 
         return Part.Wire(edges)
 
+    def createFloor(self):
+        hexSizeY = 2 * self.dimensions.hexWidth * tan(radians(30))
+        floorX = self.dimensions.getHexCentreDistanceX() * (self.configuration.columnsTotal + 1) + self.dimensions.pinWidth
+        floorY = (hexSizeY + self.dimensions.getHexCentreDistanceY() * 2 * (self.configuration.firstColumnHexCount - 1) +
+                  self.dimensions.pinWidth / 2 * tan(radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2)
+        floorPos = Vector(-self.dimensions.pinWidth / 2,
+                          self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)),
+                          -self.dimensions.boardHeight)
+        box = Part.makeBox(floorX, floorY, self.dimensions.boardHeight, floorPos)
+        boxFeature = Part.show(box, "box")
+        boxFeature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
+
+    def createPin(self, column, row, skip, shiftY):
+        wire = self.createPinWire(skip)
+        wire.translate(Vector(column * self.dimensions.getHexCentreDistanceX(), shiftY + row * self.dimensions.getHexCentreDistanceY() * 2))
+        face = Part.Face(wire)
+        pin = face.extrude(Vector(0, 0, self.dimensions.pinHeight))  # Extrude to make a solid (height=1mm)
+        pinFeature = Part.show(pin, f"pin {column}-{row}")
+        pinFeature.ViewObject.ShapeColor = (0.2, 0.6, 0.8)
+
     def createBoard(self):
-        # distance between adjacent hex tile centres
-        hex_centre_distance = self.dimensions.hexWidth + self.dimensions.pinWidth
-
-        # distance between adjacent hex tile centres on axis x
-        hex_centre_distance_x = hex_centre_distance * cos(radians(60))
-
-        # distance between adjacent hex tile centres on axis y
-        hex_centre_distance_y = hex_centre_distance * sin(radians(60))
-
         for column in range(0, self.configuration.columnsTotal + 2):
-            y_shift = 0 if column % 2 == 0 else hex_centre_distance_y
+            shiftY = 0 if column % 2 == 0 else self.dimensions.getHexCentreDistanceY()
 
             for row in range(0, self.configuration.firstColumnHexCount):
                 skip = HexPinSide.LEFT if column == 0 \
                     else HexPinSide.RIGHT if column == self.configuration.columnsTotal + 1 \
                     else HexPinSide.TOP if row == self.configuration.firstColumnHexCount - 1 and column % 2 == 1 \
                     else None
-                wire = self.createHexPin(skip)
-                wire.translate(Vector(column * hex_centre_distance_x, y_shift + row * hex_centre_distance_y * 2))
-                face = Part.Face(wire)
-                solid = face.extrude(Vector(0, 0, self.dimensions.pinHeight))  # Extrude to make a solid (height=1mm)
+                self.createPin(column, row, skip, shiftY)
 
-                frame_feature = Part.show(solid, f"pin {column}-{row}")
-                frame_feature.ViewObject.ShapeColor = (0.2, 0.6, 0.8)
-
-        hex_y = 2 * self.dimensions.hexWidth * tan(radians(30))
-
-        board_x = hex_centre_distance_x * (self.configuration.columnsTotal + 1) + self.dimensions.pinWidth
-        board_y = hex_y + hex_centre_distance_y * 2 * (
-                self.configuration.firstColumnHexCount - 1) + self.dimensions.pinWidth / 2 * tan(
-            radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2
-        board_pos = Vector(-self.dimensions.pinWidth / 2,
-                           self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)),
-                           -self.dimensions.boardHeight)
-        box = Part.makeBox(board_x, board_y, self.dimensions.boardHeight, board_pos)
-        frame_feature = Part.show(box, "box")
-        frame_feature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
+        self.createFloor()
