@@ -3,6 +3,7 @@ import Part
 from math import tan, sqrt, cos, sin, radians
 from enum import Enum, auto
 from dataclasses import dataclass
+import numpy as np
 
 class HexTimeShiftDirection(Enum):
     UP = auto()
@@ -13,7 +14,22 @@ class GridConfiguration:
     firstColumnHexCount: int
     secondColumnHexCount: int
     columnsTotal: int
-    shiftDirection: HexTimeShiftDirection = None # only applicable if secondColumnCount == firstColumnCount
+    shiftDirection: HexTimeShiftDirection = None # is not none only if secondColumnCount == firstColumnCount
+
+    def __post_init__(self):
+        if self.firstColumnHexCount == self.secondColumnHexCount and self.shiftDirection is None:
+            raise ValueError("Shift direction must be specified")
+
+    def getHexCountInColumn(self, column):
+        return 0 if column < 0 or column >= self.columnsTotal \
+            else self.firstColumnHexCount if column % 2 == 0 \
+            else self.secondColumnHexCount
+
+    def getBottomPinsRowIndexForColumn(self, column):
+        if column % 2 == 0:
+            return 0 if self.shiftDirection is HexTimeShiftDirection.UP or self.secondColumnHexCount < self.firstColumnHexCount else 1
+
+        return 0 if self.shiftDirection is HexTimeShiftDirection.DOWN or self.secondColumnHexCount > self.firstColumnHexCount else 1
 
 @dataclass
 class GridDimensions:
@@ -41,6 +57,31 @@ class HexPinSide(Enum):
     TOP = 0
     LEFT = 120
     RIGHT = 240
+
+class PinConfiguration:
+    def __init__(self, configuration: GridConfiguration):
+        self.configuration = configuration
+
+        self.sizeX = self.configuration.columnsTotal + 2
+        self.sizeY = self.configuration.firstColumnHexCount + self.configuration.secondColumnHexCount + 1
+
+        self.pinBoard = np.empty((self.sizeX, self.sizeY), dtype=object)
+
+    def addRays(self, column, row, rays):
+        currentRays = self.pinBoard[column, row]
+        self.pinBoard[column, row] = rays if currentRays is None else list(set(currentRays) | set(rays))
+
+    def doesPinExist(self, column, row):
+        return self.pinBoard[column, row] is not None
+
+    def findMissingRay(self, column, row):
+        if len(self.pinBoard[column, row]) < 2:
+            raise ValueError("Pin expected to have at least 2 rays")
+
+        for side in HexPinSide:
+            if side not in self.pinBoard[column, row]:
+                return side
+        return None
 
 class HexBoard:
     def __init__(self, configuration: GridConfiguration, dimensions: GridDimensions):
@@ -86,11 +127,10 @@ class HexBoard:
 
         return Part.Wire(edges)
 
-    def createFloor(self):
+    def createFloor(self, pinConfiguration):
         hexSizeY = 2 * self.dimensions.hexWidth * tan(radians(30))
-        floorX = self.dimensions.getHexCentreDistanceX() * (self.configuration.columnsTotal + 1) + self.dimensions.pinWidth
-        floorY = (hexSizeY + self.dimensions.getHexCentreDistanceY() * 2 * (self.configuration.firstColumnHexCount - 1) +
-                  self.dimensions.pinWidth / 2 * tan(radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2)
+        floorX = self.dimensions.getHexCentreDistanceX() * (pinConfiguration.sizeX - 1) + self.dimensions.pinWidth
+        floorY = hexSizeY + self.dimensions.getHexCentreDistanceY() * (pinConfiguration.sizeY - 2) + self.dimensions.pinWidth / 2 * tan(radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2
         floorPos = Vector(-self.dimensions.pinWidth / 2,
                           self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)),
                           -self.dimensions.boardHeight)
@@ -98,23 +138,37 @@ class HexBoard:
         boxFeature = Part.show(box, "box")
         boxFeature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
 
-    def createPin(self, column, row, skip, shiftY):
+    def createPin(self, column, row, skip):
         wire = self.createPinWire(skip)
-        wire.translate(Vector(column * self.dimensions.getHexCentreDistanceX(), shiftY + row * self.dimensions.getHexCentreDistanceY() * 2))
+        wire.translate(Vector(column * self.dimensions.getHexCentreDistanceX(), row * self.dimensions.getHexCentreDistanceY()))
         face = Part.Face(wire)
         pin = face.extrude(Vector(0, 0, self.dimensions.pinHeight))  # Extrude to make a solid (height=1mm)
         pinFeature = Part.show(pin, f"pin {column}-{row}")
         pinFeature.ViewObject.ShapeColor = (0.2, 0.6, 0.8)
 
+    def createPinConfiguration(self):
+        pinConfiguration = PinConfiguration(self.configuration)
+
+        for column in range(0, self.configuration.columnsTotal):
+            shiftY = self.configuration.getBottomPinsRowIndexForColumn(column)
+
+            for row in range(0, self.configuration.getHexCountInColumn(column)):
+                bottomPinIndex = shiftY + row * 2
+                pinConfiguration.addRays(column, bottomPinIndex, [HexPinSide.TOP, HexPinSide.RIGHT])
+                pinConfiguration.addRays(column + 1, bottomPinIndex + 1, [HexPinSide.LEFT, HexPinSide.RIGHT])
+                pinConfiguration.addRays(column + 2, bottomPinIndex, [HexPinSide.TOP, HexPinSide.LEFT])
+
+        return pinConfiguration
+
     def createBoard(self):
-        for column in range(0, self.configuration.columnsTotal + 2):
-            shiftY = 0 if column % 2 == 0 else self.dimensions.getHexCentreDistanceY()
+        pinConfiguration = self.createPinConfiguration()
 
-            for row in range(0, self.configuration.firstColumnHexCount):
-                skip = HexPinSide.LEFT if column == 0 \
-                    else HexPinSide.RIGHT if column == self.configuration.columnsTotal + 1 \
-                    else HexPinSide.TOP if row == self.configuration.firstColumnHexCount - 1 and column % 2 == 1 \
-                    else None
-                self.createPin(column, row, skip, shiftY)
+        for column in range(0, pinConfiguration.sizeX):
+            for row in range(0, pinConfiguration.sizeY):
+                if not pinConfiguration.doesPinExist(column, row):
+                    continue
 
-        self.createFloor()
+                skip = pinConfiguration.findMissingRay(column, row)
+                self.createPin(column, row, skip)
+
+        self.createFloor(pinConfiguration)
