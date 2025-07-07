@@ -38,7 +38,10 @@ class GridDimensions:
     pinLength: float
     pinRadius: float
     pinHeight: float
-    boardHeight: float
+    floorThickness: float
+
+    def getHexSizeY(self):
+        return self.hexWidth / cos(radians(30))
 
     # distance between adjacent hex tile centres
     def getHexCentreDistance(self):
@@ -51,6 +54,9 @@ class GridDimensions:
     # distance between adjacent hex tile centres on axis y
     def getHexCentreDistanceY(self):
         return self.getHexCentreDistance() * sin(radians(60))
+
+    def getDistanceFromHexCentreToOuterPinAngle(self):
+        return (self.pinWidth + self.hexWidth / 2) / cos(radians(30))
 
 # value represents angle (CCW from y axis)
 class HexPinSide(Enum):
@@ -72,7 +78,7 @@ class PinConfiguration:
         self.pinBoard[column, row] = rays if currentRays is None else list(set(currentRays) | set(rays))
 
     def doesPinExist(self, column, row):
-        return self.pinBoard[column, row] is not None
+        return 0 <= column < self.sizeX and 0 <= row < self.sizeY and self.pinBoard[column, row]
 
     def findMissingRay(self, column, row):
         if len(self.pinBoard[column, row]) < 2:
@@ -127,17 +133,6 @@ class HexBoard:
 
         return Part.Wire(edges)
 
-    def createFloor(self, pinConfiguration):
-        hexSizeY = 2 * self.dimensions.hexWidth * tan(radians(30))
-        floorX = self.dimensions.getHexCentreDistanceX() * (pinConfiguration.sizeX - 1) + self.dimensions.pinWidth
-        floorY = hexSizeY + self.dimensions.getHexCentreDistanceY() * (pinConfiguration.sizeY - 2) + self.dimensions.pinWidth / 2 * tan(radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2
-        floorPos = Vector(-self.dimensions.pinWidth / 2,
-                          self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)),
-                          -self.dimensions.boardHeight)
-        box = Part.makeBox(floorX, floorY, self.dimensions.boardHeight, floorPos)
-        boxFeature = Part.show(box, "box")
-        boxFeature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
-
     def createPin(self, column, row, skip):
         wire = self.createPinWire(skip)
         wire.translate(Vector(column * self.dimensions.getHexCentreDistanceX(), row * self.dimensions.getHexCentreDistanceY()))
@@ -160,6 +155,43 @@ class HexBoard:
 
         return pinConfiguration
 
+    def createRectangularFloor(self, pinConfiguration):
+        hexSizeY = 2 * self.dimensions.hexWidth * tan(radians(30))
+        floorX = self.dimensions.getHexCentreDistanceX() * (pinConfiguration.sizeX - 1) + self.dimensions.pinWidth
+        floorY = hexSizeY + self.dimensions.getHexCentreDistanceY() * (pinConfiguration.sizeY - 2) + self.dimensions.pinWidth / 2 * tan(radians(60)) + self.dimensions.pinWidth * (2 - sqrt(3)) / 2
+        floorPos = Vector(-self.dimensions.pinWidth / 2,
+                          self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)),
+                          -self.dimensions.floorThickness)
+        box = Part.makeBox(floorX, floorY, self.dimensions.floorThickness, floorPos)
+        boxFeature = Part.show(box, "box")
+        boxFeature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
+
+    def createHexFloorTile(self):
+        l = self.dimensions.getDistanceFromHexCentreToOuterPinAngle()
+        edges = list()
+        for i in range(0, 6):
+            v1 = Vector(l * sin(radians(60 * i)), l * cos(radians(60 * i)), 0)
+            v2 = Vector(l * sin(radians(60 * (i + 1))), l * cos(radians(60 * (i + 1))), 0)
+            edges.append(Part.LineSegment(v1, v2).toShape())
+
+        return Part.Wire(edges)
+
+    def createHexFloor(self, pinConfiguration):
+        fusedFace = None
+        for x in range(0, pinConfiguration.sizeX - 2):
+            for y in range(0, pinConfiguration.sizeY):
+                if pinConfiguration.doesPinExist(x, y) and pinConfiguration.findMissingRay(x, y) in [None, HexPinSide.LEFT, HexPinSide.RIGHT]:
+                    wire = self.createHexFloorTile()
+                    wire.translate(Vector(x * self.dimensions.getHexCentreDistanceX(), y * self.dimensions.getHexCentreDistanceY()))
+                    face = Part.Face(wire)
+                    fusedFace = face if fusedFace is None else fusedFace.fuse(face)
+        y = self.dimensions.pinWidth / 2 * tan(radians(30)) - self.dimensions.hexWidth / 2 * tan(radians(30)) + self.dimensions.getHexSizeY() / 2
+        fusedFace.translate(Vector(self.dimensions.pinWidth / 2 + self.dimensions.hexWidth / 2, y, -self.dimensions.floorThickness))
+
+        floor = fusedFace.extrude(Vector(0, 0, self.dimensions.floorThickness))
+        pinFeature = Part.show(floor, "floor v2")
+        pinFeature.ViewObject.ShapeColor = (0.4, 0.8, 0.4)
+
     def createBoard(self):
         pinConfiguration = self.createPinConfiguration()
 
@@ -171,4 +203,5 @@ class HexBoard:
                 skip = pinConfiguration.findMissingRay(column, row)
                 self.createPin(column, row, skip)
 
-        self.createFloor(pinConfiguration)
+        self.createHexFloor(pinConfiguration)
+        # self.createFloor(pinConfiguration)
