@@ -1,0 +1,88 @@
+from math import cos, sin, radians
+
+import numpy as np
+
+from dataclasses import dataclass
+from enum import IntEnum, auto
+
+
+class HexTimeShiftDirection(IntEnum):
+    UP = auto()
+    DOWN = auto()
+
+@dataclass
+class GridConfiguration:
+    firstColumnHexCount: int
+    secondColumnHexCount: int
+    columnsTotal: int
+    shiftDirection: HexTimeShiftDirection = None # is not none only if secondColumnCount == firstColumnCount
+
+    def __post_init__(self):
+        if self.firstColumnHexCount == self.secondColumnHexCount and self.shiftDirection is None:
+            raise ValueError("Shift direction must be specified")
+
+    def getHexCountInColumn(self, column):
+        return 0 if column < 0 or column >= self.columnsTotal \
+            else self.firstColumnHexCount if column % 2 == 0 \
+            else self.secondColumnHexCount
+
+    def getBottomPinsRowIndexForColumn(self, column):
+        if column % 2 == 0:
+            return 0 if self.shiftDirection is HexTimeShiftDirection.UP or self.secondColumnHexCount < self.firstColumnHexCount else 1
+
+        return 0 if self.shiftDirection is HexTimeShiftDirection.DOWN or self.secondColumnHexCount > self.firstColumnHexCount else 1
+
+@dataclass
+class GridDimensions:
+    hexWidth: float
+    pinWidth: float
+    pinLength: float
+    pinRadius: float
+    pinHeight: float
+    floorThickness: float
+
+    def getHexSizeY(self):
+        return self.hexWidth / cos(radians(30))
+
+    # distance between adjacent hex tile centres
+    def getHexCentreDistance(self):
+        return self.hexWidth + self.pinWidth
+
+    # distance between adjacent hex tile centres on axis x
+    def getHexCentreDistanceX(self):
+        return self.getHexCentreDistance() * cos(radians(60))
+
+    # distance between adjacent hex tile centres on axis y
+    def getHexCentreDistanceY(self):
+        return self.getHexCentreDistance() * sin(radians(60))
+
+    def getDistanceFromHexCentreToOuterPinAngle(self):
+        return (self.pinWidth + self.hexWidth / 2) / cos(radians(30))
+
+# value represents angle (CCW from y axis)
+class HexPinSide(IntEnum):
+    TOP = 0
+    LEFT = 120
+    RIGHT = 240
+
+class PinConfiguration:
+    def __init__(self, configuration: GridConfiguration):
+        self.configuration = configuration
+
+        self.sizeX = self.configuration.columnsTotal + 2
+        self.sizeY = self.configuration.firstColumnHexCount + self.configuration.secondColumnHexCount + 1
+
+        self.pinBoard = np.empty((self.sizeX, self.sizeY), dtype=object)
+
+    def addRays(self, column, row, rays):
+        currentRays = self.pinBoard[column, row]
+        self.pinBoard[column, row] = rays if currentRays is None else list(set(currentRays) | set(rays))
+
+    def doesPinExist(self, column, row):
+        return 0 <= column < self.sizeX and 0 <= row < self.sizeY and self.pinBoard[column, row]
+
+    def findMissingRay(self, column, row):
+        missingRays = set(HexPinSide) - set(self.pinBoard[column, row])
+        if len(missingRays) > 1:
+            raise ValueError("Pin expected to have at least 2 rays")
+        return None if not missingRays else missingRays.pop()

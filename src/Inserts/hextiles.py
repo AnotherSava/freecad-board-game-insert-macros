@@ -1,93 +1,10 @@
-from FreeCAD import Vector
-import Part
 from math import tan, sqrt, cos, sin, radians
-from enum import Enum, auto
-from dataclasses import dataclass
-import numpy as np
 
-class HexTimeShiftDirection(Enum):
-    UP = auto()
-    DOWN = auto()
+import Part
+from FreeCAD import Vector
 
-@dataclass
-class GridConfiguration:
-    firstColumnHexCount: int
-    secondColumnHexCount: int
-    columnsTotal: int
-    shiftDirection: HexTimeShiftDirection = None # is not none only if secondColumnCount == firstColumnCount
+from Inserts.configuration import GridConfiguration, GridDimensions, HexPinSide, PinConfiguration
 
-    def __post_init__(self):
-        if self.firstColumnHexCount == self.secondColumnHexCount and self.shiftDirection is None:
-            raise ValueError("Shift direction must be specified")
-
-    def getHexCountInColumn(self, column):
-        return 0 if column < 0 or column >= self.columnsTotal \
-            else self.firstColumnHexCount if column % 2 == 0 \
-            else self.secondColumnHexCount
-
-    def getBottomPinsRowIndexForColumn(self, column):
-        if column % 2 == 0:
-            return 0 if self.shiftDirection is HexTimeShiftDirection.UP or self.secondColumnHexCount < self.firstColumnHexCount else 1
-
-        return 0 if self.shiftDirection is HexTimeShiftDirection.DOWN or self.secondColumnHexCount > self.firstColumnHexCount else 1
-
-@dataclass
-class GridDimensions:
-    hexWidth: float
-    pinWidth: float
-    pinLength: float
-    pinRadius: float
-    pinHeight: float
-    floorThickness: float
-
-    def getHexSizeY(self):
-        return self.hexWidth / cos(radians(30))
-
-    # distance between adjacent hex tile centres
-    def getHexCentreDistance(self):
-        return self.hexWidth + self.pinWidth
-
-    # distance between adjacent hex tile centres on axis x
-    def getHexCentreDistanceX(self):
-        return self.getHexCentreDistance() * cos(radians(60))
-
-    # distance between adjacent hex tile centres on axis y
-    def getHexCentreDistanceY(self):
-        return self.getHexCentreDistance() * sin(radians(60))
-
-    def getDistanceFromHexCentreToOuterPinAngle(self):
-        return (self.pinWidth + self.hexWidth / 2) / cos(radians(30))
-
-# value represents angle (CCW from y axis)
-class HexPinSide(Enum):
-    TOP = 0
-    LEFT = 120
-    RIGHT = 240
-
-class PinConfiguration:
-    def __init__(self, configuration: GridConfiguration):
-        self.configuration = configuration
-
-        self.sizeX = self.configuration.columnsTotal + 2
-        self.sizeY = self.configuration.firstColumnHexCount + self.configuration.secondColumnHexCount + 1
-
-        self.pinBoard = np.empty((self.sizeX, self.sizeY), dtype=object)
-
-    def addRays(self, column, row, rays):
-        currentRays = self.pinBoard[column, row]
-        self.pinBoard[column, row] = rays if currentRays is None else list(set(currentRays) | set(rays))
-
-    def doesPinExist(self, column, row):
-        return 0 <= column < self.sizeX and 0 <= row < self.sizeY and self.pinBoard[column, row]
-
-    def findMissingRay(self, column, row):
-        if len(self.pinBoard[column, row]) < 2:
-            raise ValueError("Pin expected to have at least 2 rays")
-
-        for side in HexPinSide:
-            if side not in self.pinBoard[column, row]:
-                return side
-        return None
 
 class HexBoard:
     def __init__(self, configuration: GridConfiguration, dimensions: GridDimensions):
@@ -176,7 +93,7 @@ class HexBoard:
 
         return Part.Wire(edges)
 
-    def createHexFloor(self, pinConfiguration):
+    def createHexFloor(self, pinConfiguration: PinConfiguration):
         fusedFace = None
         for x in range(0, pinConfiguration.sizeX - 2):
             for y in range(0, pinConfiguration.sizeY):
@@ -189,8 +106,8 @@ class HexBoard:
         fusedFace.translate(Vector(self.dimensions.pinWidth / 2 + self.dimensions.hexWidth / 2, y, -self.dimensions.floorThickness))
 
         floor = fusedFace.extrude(Vector(0, 0, self.dimensions.floorThickness))
-        pinFeature = Part.show(floor, "floor v2")
-        pinFeature.ViewObject.ShapeColor = (0.4, 0.8, 0.4)
+        floorFeature = Part.show(floor, "floor v2")
+        floorFeature.ViewObject.ShapeColor = (0.4, 0.8, 0.4)
 
     def createBoard(self):
         pinConfiguration = self.createPinConfiguration()

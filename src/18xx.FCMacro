@@ -7,7 +7,11 @@ importlib.reload(components) # force FreeCAD to reload modules
 from Inserts import hextiles
 importlib.reload(hextiles) # force FreeCAD to reload modules
 
-from Inserts.hextiles import GridConfiguration, GridDimensions, HexBoard, HexTimeShiftDirection
+from Inserts import configuration
+importlib.reload(configuration) # force FreeCAD to reload modules
+
+from Inserts.hextiles import HexBoard, PinConfiguration
+from Inserts.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
 
 document = FreeCAD.newDocument('18xx-v2-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
