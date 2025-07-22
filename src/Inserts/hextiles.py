@@ -83,13 +83,39 @@ class HexBoard:
         boxFeature = Part.show(box, "box")
         boxFeature.ViewObject.ShapeColor = (0.8, 0.6, 0.2)
 
-    def createHexFloorTile(self):
-        l = self.dimensions.getDistanceFromHexCentreToOuterPinAngle()
+    def createRoundedHexFloorTile(self):
+        # Align arc shortening distance with one in createPinRayWire
+        arcOffset = self.dimensions.pinWidth / 2 / cos(radians(30))
+
+        # Calculate unit vectors for hexagon vertices from its centre
+        verticeUnits = [Vector(sin(radians(60 * i)), cos(radians(60 * i)), 0) for i in range(0, 6)]
+
+        # Calculate unit vectors for hexagon edges (normalized directions)
+        edgeUnits = [(verticeUnits[(i + 1) % 6] - verticeUnits[i]).normalize() for i in range(0, 6)]
+
+        # Calculate all 6 vertices of the hexagon
+        vertices = [self.dimensions.getDistanceFromHexCentreToOuterPinAngle() * verticeUnit for verticeUnit in verticeUnits]
+
         edges = list()
-        for i in range(0, 6):
-            v1 = Vector(l * sin(radians(60 * i)), l * cos(radians(60 * i)), 0)
-            v2 = Vector(l * sin(radians(60 * (i + 1))), l * cos(radians(60 * (i + 1))), 0)
-            edges.append(Part.LineSegment(v1, v2).toShape())
+
+        # Create shortened edges with arc connections
+        for currentVertexIndex in range(0, 6):
+            nextVertexIndex = (currentVertexIndex + 1) % 6
+
+            # Shorten the edge by arcOffset at each end
+            v1Short = vertices[currentVertexIndex] + edgeUnits[currentVertexIndex] * arcOffset
+            v2Short = vertices[nextVertexIndex] - edgeUnits[currentVertexIndex] * arcOffset
+            
+            # Add the shortened straight edge
+            edges.append(Part.LineSegment(v1Short, v2Short).toShape())
+            
+            # Add arc at the corner connecting this edge to the next
+            arcStart = v2Short
+            arcEnd = vertices[nextVertexIndex] + edgeUnits[nextVertexIndex] * arcOffset
+            arcMidOffset = self.dimensions.pinWidth * (2 - sqrt(3)) / 2
+            arcMid = (arcStart + arcEnd) / 2 + verticeUnits[nextVertexIndex] * arcMidOffset
+
+            edges.append(Part.Arc(arcStart, arcMid, arcEnd).toShape())
 
         return Part.Wire(edges)
 
@@ -98,7 +124,7 @@ class HexBoard:
         for x in range(0, pinConfiguration.sizeX - 2):
             for y in range(0, pinConfiguration.sizeY):
                 if pinConfiguration.doesPinExist(x, y) and pinConfiguration.findMissingRay(x, y) in [None, HexPinSide.LEFT, HexPinSide.RIGHT]:
-                    wire = self.createHexFloorTile()
+                    wire = self.createRoundedHexFloorTile()
                     wire.translate(Vector(x * self.dimensions.getHexCentreDistanceX(), y * self.dimensions.getHexCentreDistanceY()))
                     face = Part.Face(wire)
                     fusedFace = face if fusedFace is None else fusedFace.fuse(face)

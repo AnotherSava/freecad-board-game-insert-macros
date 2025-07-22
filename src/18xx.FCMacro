@@ -18,6 +18,7 @@ document = FreeCAD.newDocument('18xx-v2-rev')
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 # components.create_insert()
+# hexBoard = HexBoard(GridConfiguration(1, 1, 1, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
 hexBoard = HexBoard(GridConfiguration(2, 2, 4, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
 # hexBoard = HexBoard(GridConfiguration(3, 4, 3), GridDimensions(28, 4, 5, 1, 8, 0.8))
 hexBoard.createBoard()
