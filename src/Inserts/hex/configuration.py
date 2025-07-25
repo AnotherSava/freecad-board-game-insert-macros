@@ -4,11 +4,38 @@ import numpy as np
 
 from dataclasses import dataclass
 from enum import IntEnum, auto
+from FreeCAD import Vector
 
 
 class HexTimeShiftDirection(IntEnum):
     UP = auto()
     DOWN = auto()
+
+class HexTileVertices(IntEnum):
+    N = 0
+    NW = 60
+    SW = 120
+    S = 180
+    SE = 240
+    NE = 300
+
+    # Unit vector for hexagon vertex from its centre
+    def getUnitVector(self) -> Vector:
+        return Vector(-sin(radians(self.value)), cos(radians(self.value)))
+
+    # Unit vector for hexagon edge CCW from this vertex (normalized directions)
+    def getEdgeCounterClockWiseUnitVector(self) -> Vector:
+        return (self.getNextCounterClockWise().getUnitVector() - self.getUnitVector()).normalize()
+
+    # Vertex of the hexagon with a specific width
+    def getVector(self, hexWidth: float) -> Vector:
+        return hexWidth / 2 / cos(radians(30)) * self.getUnitVector()
+
+    def getNextClockWise(self) -> 'HexTileVertices':
+        return HexTileVertices((self.value - 60) % 360)
+
+    def getNextCounterClockWise(self) -> 'HexTileVertices':
+        return HexTileVertices((self.value + 60) % 360)
 
 @dataclass
 class GridConfiguration:
@@ -57,7 +84,10 @@ class GridDimensions:
         return self.getHexCentreDistance() * sin(radians(60))
 
     def getDistanceFromHexCentreToOuterPinAngle(self):
-        return (self.pinWidth + self.hexWidth / 2) / cos(radians(30))
+        return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexWidth)
+
+    def getDistanceFromHexCentreToHexCorner(self, hexWidth: float):
+        return hexWidth / 2 / cos(radians(30))
 
 # value represents angle (CCW from y axis)
 class HexPinSide(IntEnum):

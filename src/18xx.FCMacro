@@ -4,21 +4,25 @@ import importlib
 from Inserts import components
 importlib.reload(components) # force FreeCAD to reload modules
 
-from Inserts import hextiles
-importlib.reload(hextiles) # force FreeCAD to reload modules
+from Inserts.hex import pin
+importlib.reload(pin) # force FreeCAD to reload modules
 
-from Inserts import configuration
+from Inserts.hex import configuration
 importlib.reload(configuration) # force FreeCAD to reload modules
 
-from Inserts.hextiles import HexBoard, PinConfiguration
-from Inserts.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
+from Inserts.hex import hextiles
+importlib.reload(hextiles) # force FreeCAD to reload modules
 
-document = FreeCAD.newDocument('18xx-v2-rev')
+from Inserts.hex.hextiles import HexBoard, PinConfiguration
+from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
+
+document = FreeCAD.newDocument('18xx-v3-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 # components.create_insert()
-# hexBoard = HexBoard(GridConfiguration(1, 1, 1, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
+# hexBoard = HexBoard(GridConfiguration(1, 0, 1, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
+# hexBoard = HexBoard(GridConfiguration(1, 1, 2, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
 hexBoard = HexBoard(GridConfiguration(2, 2, 4, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
 # hexBoard = HexBoard(GridConfiguration(3, 4, 3), GridDimensions(28, 4, 5, 1, 8, 0.8))
 hexBoard.createBoard()
