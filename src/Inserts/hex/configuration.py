@@ -67,6 +67,7 @@ class GridDimensions:
     pinRadius: float
     pinHeight: float
     floorThickness: float
+    adjacentDistance: float = 0 # distance between adjacent tiles that are not separated by a pin
 
     def getHexSizeY(self):
         return self.hexWidth / cos(radians(30))

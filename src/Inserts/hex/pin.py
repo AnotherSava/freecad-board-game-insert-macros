@@ -6,36 +6,25 @@ from FreeCAD import Vector
 
 from Inserts.hex.configuration import GridDimensions, HexPinSide
 
+from Inserts.common.geometry import shiftVector, shiftVectorTwice
 
 class PinFactory:
     def __init__(self, dimensions: GridDimensions):
         self.dimensions = dimensions
 
-    # angle is measured in degrees CCW from axis Y
-    def createVector(self, length: float, angle: float) -> Vector:
-        return Vector(-length * sin(radians(angle)), length * cos(radians(angle)))
-
-    # angle is measured in degrees CCW from axis Y
-    def shiftVector(self, vector: Vector, length: float, angle: float) -> Vector:
-        return vector + self.createVector(length, angle)
-
-    # angle is measured in degrees CCW from axis Y
-    def shiftVectorTwice(self, vector: Vector, length1: float, angle1: float, length2: float, angle2: float) -> Vector:
-        return self.shiftVector(self.shiftVector(vector, length1, angle1), length2, angle2)
-
     # create wire from the centre of the far side of one ray to the centre of the far side of the next one
     # full pin consists of three such wires
     def createAnglePinWire(self) -> Wire:
         v1 = Vector(0, self.dimensions.pinLength)
-        v2 = self.shiftVector(v1, self.dimensions.pinWidth / 2 - self.dimensions.pinRadius, -90)
-        v23 = self.shiftVectorTwice(v2, self.dimensions.pinRadius, 180, self.dimensions.pinRadius, -45)
-        v3 = self.shiftVectorTwice(v23, self.dimensions.pinRadius, 135, self.dimensions.pinRadius, -90)
-        v4 = self.shiftVector(v3, self.dimensions.pinLength - self.dimensions.pinRadius, 180)
-        v5 = self.shiftVector(v4, self.dimensions.pinLength - self.dimensions.pinRadius, -120)
+        v2 = shiftVector(v1, self.dimensions.pinWidth / 2 - self.dimensions.pinRadius, -90)
+        v23 = shiftVectorTwice(v2, self.dimensions.pinRadius, 180, self.dimensions.pinRadius, -45)
+        v3 = shiftVectorTwice(v23, self.dimensions.pinRadius, 135, self.dimensions.pinRadius, -90)
+        v4 = shiftVector(v3, self.dimensions.pinLength - self.dimensions.pinRadius, 180)
+        v5 = shiftVector(v4, self.dimensions.pinLength - self.dimensions.pinRadius, -120)
 
-        v56 = self.shiftVectorTwice(v5, self.dimensions.pinRadius, 150, self.dimensions.pinRadius, -75)
-        v6 = self.shiftVectorTwice(v56, self.dimensions.pinRadius, 105, self.dimensions.pinRadius, -120)
-        v7 = self.shiftVector(v6, self.dimensions.pinWidth / 2 - self.dimensions.pinRadius, 150)
+        v56 = shiftVectorTwice(v5, self.dimensions.pinRadius, 150, self.dimensions.pinRadius, -75)
+        v6 = shiftVectorTwice(v56, self.dimensions.pinRadius, 105, self.dimensions.pinRadius, -120)
+        v7 = shiftVector(v6, self.dimensions.pinWidth / 2 - self.dimensions.pinRadius, 150)
 
         parts = [
             LineSegment(v1, v2),
@@ -55,8 +44,8 @@ class PinFactory:
         # delta = self.dimensions.pinRadius * (1 - cos(radians(45)))
 
         v1 = Vector(0, self.dimensions.pinLength)
-        v2 = self.shiftVector(v1, lengthToCentre, 180)
-        v3 = self.shiftVector(v2, lengthToCentre, 120)
+        v2 = shiftVector(v1, lengthToCentre, 180)
+        v3 = shiftVector(v2, lengthToCentre, 120)
 
         parts = [
             LineSegment(v1, v2),
