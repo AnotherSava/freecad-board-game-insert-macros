@@ -1,10 +1,14 @@
 import FreeCAD
 import importlib
 
+from Inserts.common import geometry
+importlib.reload(geometry) # force FreeCAD to reload modules
+
 from Inserts import components
 importlib.reload(components) # force FreeCAD to reload modules
 
 from Inserts.hex import pin
+importlib.reload(pin) # force FreeCAD to reload modules
 importlib.reload(pin) # force FreeCAD to reload modules
 
 from Inserts.hex import configuration
@@ -13,6 +17,10 @@ importlib.reload(configuration) # force FreeCAD to reload modules
 from Inserts.hex import hextiles
 importlib.reload(hextiles) # force FreeCAD to reload modules
 
+from Inserts.hex import condensed
+importlib.reload(condensed) # force FreeCAD to reload modules
+
+from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.hextiles import HexBoard, PinConfiguration
 from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
 
@@ -21,10 +29,21 @@ document = FreeCAD.newDocument('18xx-v3-rev')
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 # components.create_insert()
-# hexBoard = HexBoard(GridConfiguration(1, 0, 1, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
-# hexBoard = HexBoard(GridConfiguration(1, 1, 2, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
-hexBoard = HexBoard(GridConfiguration(2, 2, 4, HexTimeShiftDirection.UP), GridDimensions(28, 4, 6, 1, 8, 0.8))
-# hexBoard = HexBoard(GridConfiguration(3, 4, 3), GridDimensions(28, 4, 5, 1, 8, 0.8))
-hexBoard.createBoard()
+# configuration = GridConfiguration(1, 0, 1, HexTimeShiftDirection.UP)
+# configuration = GridConfiguration(1, 1, 2, HexTimeShiftDirection.UP)
+# configuration = GridConfiguration(2, 2, 4, HexTimeShiftDirection.UP)
+configuration = GridConfiguration(2, 1, 4)
+# configuration = GridConfiguration(3, 4, 3)
+
+dimensions = GridDimensions(28, 4, 6, 1, 8, 0.8, 0)
+
+dimensions.pinWidth /= 2
+
+# hexBoard = HexBoard(configuration, dimensions)
+# hexBoard.createBoard()
+
+
+condensedBoard = CondensedBoard(dimensions, 3)
+condensedBoard.createBoard()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')

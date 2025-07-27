@@ -1,8 +1,9 @@
-from math import tan, sqrt, cos, sin, radians
+from math import tan, radians
 
 import Part
 from FreeCAD import Vector
 
+from Inserts.common.geometry import createRoundedHexTile
 from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexPinSide, PinConfiguration, HexTileVertices
 from Inserts.hex.pin import PinFactory
 
@@ -34,39 +35,6 @@ class HexBoard:
         floorPos = Vector(-self.dimensions.pinWidth / 2, -self.dimensions.getHexCentreDistanceY() / 2, -self.dimensions.floorThickness)
         return Part.makeBox(floorX, floorY, self.dimensions.floorThickness, floorPos)
 
-    def createRoundedHexTile(self, tileWidth: float, roundedVertices: list[HexTileVertices] = list(HexTileVertices)):
-        # Align arc shortening distance with one in createPinRayWire
-        arcOffset = self.dimensions.pinWidth / 2 / cos(radians(30))
-
-        edges = list()
-
-        # Create shortened edges with arc connections
-        for currentVertex in sorted(HexTileVertices, key=lambda vertex: vertex.value):
-            nextVertex = currentVertex.getNextCounterClockWise()
-
-            # Shorten the edge by arcOffset at each end if needed
-            v1 = currentVertex.getVector(tileWidth)
-            if currentVertex in roundedVertices:
-                v1 += currentVertex.getEdgeCounterClockWiseUnitVector() * arcOffset
-
-            v2 = nextVertex.getVector(tileWidth)
-            if nextVertex in roundedVertices:
-                v2 -= currentVertex.getEdgeCounterClockWiseUnitVector() * arcOffset
-
-            # Add the straight edge
-            edges.append(Part.LineSegment(v1, v2).toShape())
-            
-            if nextVertex in roundedVertices:
-                # Add arc at the corner connecting this edge to the next
-                arcStart = v2
-                arcEnd = nextVertex.getVector(tileWidth) + nextVertex.getEdgeCounterClockWiseUnitVector() * arcOffset
-                arcMidOffset = self.dimensions.pinWidth * (2 - sqrt(3)) / 2
-                arcMid = (arcStart + arcEnd) / 2 + nextVertex.getUnitVector() * arcMidOffset
-
-                edges.append(Part.Arc(arcStart, arcMid, arcEnd).toShape())
-
-        return Part.Wire(edges)
-
     def createOuterBound(self, pinConfiguration: PinConfiguration):
         fusedFace = None
         for x in range(0, pinConfiguration.sizeX - 2):
@@ -92,7 +60,7 @@ class HexBoard:
                     if x == pinConfiguration.sizeX - 3:
                         roundedVertices += [HexTileVertices.NE, HexTileVertices.SE]
 
-                    wire = self.createRoundedHexTile(self.dimensions.hexWidth + self.dimensions.pinWidth, roundedVertices)
+                    wire = createRoundedHexTile(self.dimensions.hexWidth + self.dimensions.pinWidth, self.dimensions.pinWidth, roundedVertices)
                     wire.translate(Vector(x * self.dimensions.getHexCentreDistanceX(), y * self.dimensions.getHexCentreDistanceY()))
                     face = Part.Face(wire)
                     fusedFace = face if fusedFace is None else fusedFace.fuse(face)
@@ -101,9 +69,7 @@ class HexBoard:
 
         return fusedFace.extrude(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
 
-    def createBoard(self):
-        pinConfiguration = self.createPinConfiguration()
-
+    def createPins(self, pinConfiguration: PinConfiguration):
         pins = None
         for column in range(0, pinConfiguration.sizeX):
             for row in range(0, pinConfiguration.sizeY):
@@ -113,6 +79,12 @@ class HexBoard:
                 skip = pinConfiguration.findMissingRay(column, row)
                 pin = self.pinFactory.createPin(column, row, skip)
                 pins = pin if not pins else pins.fuse(pin)
+        return pins
+
+    def createBoard(self):
+        pinConfiguration = self.createPinConfiguration()
+
+        pins = self.createPins(pinConfiguration)
 
         outerBound = self.createOuterBound(pinConfiguration)
         # floorFeature = Part.show(outerBound, "floor v2")

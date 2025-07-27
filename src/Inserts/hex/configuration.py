@@ -2,6 +2,7 @@ from math import cos, sin, radians
 
 import numpy as np
 
+from Inserts.common.geometry import createVector
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from FreeCAD import Vector
@@ -10,6 +11,17 @@ from FreeCAD import Vector
 class HexTimeShiftDirection(IntEnum):
     UP = auto()
     DOWN = auto()
+
+class HexTileEdges(IntEnum):
+    NW = 120
+    W = 180
+    SW = 240
+    SE = 300
+    E = 0
+    NE = 60
+
+    def getUnitVector(self) -> Vector:
+        return createVector(1, self.value)
 
 class HexTileVertices(IntEnum):
     N = 0
@@ -24,8 +36,8 @@ class HexTileVertices(IntEnum):
         return Vector(-sin(radians(self.value)), cos(radians(self.value)))
 
     # Unit vector for hexagon edge CCW from this vertex (normalized directions)
-    def getEdgeCounterClockWiseUnitVector(self) -> Vector:
-        return (self.getNextCounterClockWise().getUnitVector() - self.getUnitVector()).normalize()
+    def getEdgeCounterClockWise(self) -> HexTileEdges:
+        return HexTileEdges((self.value + 120) % 360)
 
     # Vertex of the hexagon with a specific width
     def getVector(self, hexWidth: float) -> Vector:
@@ -67,7 +79,7 @@ class GridDimensions:
     pinRadius: float
     pinHeight: float
     floorThickness: float
-    adjacentDistance: float = 0 # distance between adjacent tiles that are not separated by a pin
+    adjacentDistance: float = None # distance between adjacent tiles that are not separated by a pin
 
     def getHexSizeY(self):
         return self.hexWidth / cos(radians(30))
