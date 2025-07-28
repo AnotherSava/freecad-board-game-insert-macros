@@ -48,21 +48,22 @@ class CondensedBoard:
 
         return createWire(points)
 
+    def getRowShift(self, rowIndex: int, down: bool) -> Vector:
+        distanceYa = self.dimensions.getDistanceFromHexCentreToHexCorner(self.dimensions.hexWidth + self.dimensions.pinWidth)
+        y = self.getDistanceY() * rowIndex if down else self.getDistanceY() * (rowIndex - 1) + 2 * distanceYa
+        x = 0 if down == (rowIndex % 2 == 0) else (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2
+        return Vector(x, y)
+
     def createWalls(self):
         fusedFace = None
 
-        y = 0
         for i in range(self.rowCount + 1):
-            wire = self.createDoubleSnakeWallWire(i % 2 == 0, 2 if i == 0 or i == self.rowCount else 3)
-            distanceYa = self.dimensions.getDistanceFromHexCentreToHexCorner(self.dimensions.hexWidth + self.dimensions.pinWidth)
-            distanceYb = self.getDistanceY()
-            wire.translate(Vector(0, y))
+            startDown = i % 2 == 0 and i != self.rowCount
+            segmentCount = 3 if 0 < i < self.rowCount else 2
+            wire = self.createDoubleSnakeWallWire(startDown, segmentCount)
+            wire.translate(self.getRowShift(i, startDown))
             face = Part.Face(wire)
             fusedFace = face if fusedFace is None else fusedFace.fuse(face)
-            if i % 2 == 0:
-                y += 2 * distanceYa
-            else:
-                y += 2 * distanceYb - 2 * distanceYa
 
         return fusedFace.extrude(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
 

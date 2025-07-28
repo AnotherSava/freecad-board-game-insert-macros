@@ -43,7 +43,7 @@ dimensions.pinWidth /= 2
 # hexBoard.createBoard()
 
 
-condensedBoard = CondensedBoard(dimensions, 3)
+condensedBoard = CondensedBoard(dimensions, 4)
 condensedBoard.createBoard()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')
