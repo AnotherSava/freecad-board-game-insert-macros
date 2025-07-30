@@ -35,7 +35,7 @@ FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 configuration = GridConfiguration(2, 1, 4)
 # configuration = GridConfiguration(3, 4, 3)
 
-dimensions = GridDimensions(28, 4, 6, 1, 8, 0.8, 0)
+dimensions = GridDimensions(28, 4, 6, 1, 9, 0.8, 0)
 
 dimensions.pinWidth /= 2
 
@@ -43,7 +43,7 @@ dimensions.pinWidth /= 2
 # hexBoard.createBoard()
 
 
-condensedBoard = CondensedBoard(dimensions, 4)
+condensedBoard = CondensedBoard(dimensions, 2)
 condensedBoard.createBoard()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')

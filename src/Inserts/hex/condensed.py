@@ -48,24 +48,33 @@ class CondensedBoard:
 
         return createWire(points)
 
-    def getRowShift(self, rowIndex: int, down: bool) -> Vector:
+    def getRowShift(self, rowIndex: int, columnIndex: int, down: bool) -> Vector:
         distanceYa = self.dimensions.getDistanceFromHexCentreToHexCorner(self.dimensions.hexWidth + self.dimensions.pinWidth)
         y = self.getDistanceY() * rowIndex if down else self.getDistanceY() * (rowIndex - 1) + 2 * distanceYa
-        x = 0 if down == (rowIndex % 2 == 0) else (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2
+        x = columnIndex * (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2
         return Vector(x, y)
 
     def createWalls(self):
-        fusedFace = None
+        fusedWall = None
 
-        for i in range(self.rowCount + 1):
+        for i in range(1, self.rowCount):
             startDown = i % 2 == 0 and i != self.rowCount
             segmentCount = 3 if 0 < i < self.rowCount else 2
             wire = self.createDoubleSnakeWallWire(startDown, segmentCount)
-            wire.translate(self.getRowShift(i, startDown))
+            wire.translate(self.getRowShift(i, 0 if i < self.rowCount else 1, startDown))
             face = Part.Face(wire)
-            fusedFace = face if fusedFace is None else fusedFace.fuse(face)
+            fusedWall = face if fusedWall is None else fusedWall.fuse(face)
 
-        return fusedFace.extrude(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
+        for i in [0, self.rowCount]:
+            shift = 1 if i == self.rowCount and i % 2 == 0 else 0
+            for j in range(2):
+                startDown = i == 0
+                wire = self.createDoubleSnakeWallWire(startDown, 0)
+                wire.translate(self.getRowShift(i, j * 2 + shift, startDown))
+                face = Part.Face(wire)
+                fusedWall = face if fusedWall is None else fusedWall.fuse(face)
+
+        return fusedWall.extrude(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
 
     def getDistanceY(self):
         sameRowHexDistanceX = self.dimensions.hexWidth + self.dimensions.adjacentDistance
