@@ -1,4 +1,4 @@
-from math import cos, sin, radians
+from math import cos, sin, radians, tan
 
 import numpy as np
 
@@ -80,6 +80,9 @@ class GridDimensions:
     pinHeight: float
     floorThickness: float
     adjacentDistance: float = None # distance between adjacent tiles that are not separated by a pin
+    magnetDiameter: float = 2
+    magnetHeight: float = 1
+    extruderWidth: float = 0.42
 
     def getHexSizeY(self):
         return self.hexWidth / cos(radians(30))
@@ -101,6 +104,10 @@ class GridDimensions:
 
     def getDistanceFromHexCentreToHexCorner(self, hexWidth: float):
         return hexWidth / 2 / cos(radians(30))
+
+    def getCondensedDistanceY(self):
+        sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
+        return (self.hexWidth + self.pinWidth) / cos(radians(30)) - sameRowHexDistanceX / 2 * tan(radians(30))
 
 # value represents angle (CCW from y axis)
 class HexPinSide(IntEnum):

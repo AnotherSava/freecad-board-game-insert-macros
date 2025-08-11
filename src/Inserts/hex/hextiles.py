@@ -3,7 +3,7 @@ from math import tan, radians
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import createRoundedHexTile
+from Inserts.common.hexes import createRoundedHexTile
 from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexPinSide, PinConfiguration, HexTileVertices
 from Inserts.hex.pin import PinFactory
 
