@@ -40,19 +40,19 @@ class CondensedWalls:
 
         return points
 
-    def createMagnetHolesWall(self, startDown: bool, segmentCount: int):
+    def createMagnetHolesWall(self, startDown: bool, segmentCount: int, magnetHeight: float):
         pinWidthY = self.dimensions.pinWidth / cos(radians(30))
 
         fullSegmentLength = (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2 / sin(radians(60))
 
         wallAngleFacingUp = not startDown
         currentPoint = Vector(0, pinWidthY if wallAngleFacingUp else 0)
-        fusedMagnetHoles = self.createMagnetHole(currentPoint, wallAngleFacingUp)
+        fusedMagnetHoles = self.createMagnetHole(currentPoint, wallAngleFacingUp, magnetHeight)
 
         for i in range(segmentCount):
             wallAngleFacingUp = not wallAngleFacingUp
             currentPoint = shiftVector(shiftVector(currentPoint, fullSegmentLength, self.getSegmentAngle(startDown, i + 1)), pinWidthY, 0 if wallAngleFacingUp else 180)
-            fusedMagnetHoles = fusedMagnetHoles.fuse(self.createMagnetHole(currentPoint, wallAngleFacingUp))
+            fusedMagnetHoles = fusedMagnetHoles.fuse(self.createMagnetHole(currentPoint, wallAngleFacingUp, magnetHeight))
 
         return fusedMagnetHoles
 
@@ -97,7 +97,7 @@ class CondensedWalls:
 
         return fusedWall.extrude(Vector(0, 0, height))
 
-    def createMagnetHole(self, vector: Vector, top: bool):
+    def createMagnetHole(self, vector: Vector, top: bool, magnetHeight: float):
         v1 = Vector(0, -self.dimensions.extruderWidth / cos(radians(30)))
         v2 = shiftVector(v1, self.dimensions.magnetDiameter / 2 * (1 + tan(radians(30))), -120)
         v3 = shiftVector(v2, self.dimensions.pinWidth - self.dimensions.extruderWidth, 150)
@@ -110,21 +110,21 @@ class CondensedWalls:
         wire = wire.translate(vector)
         face = Part.Face(wire)
 
-        return face.extrude(Vector(0, 0, self.dimensions.magnetHeight))
+        return face.extrude(Vector(0, 0, magnetHeight))
 
     def createMagnetCylindricalHole(self, vector: Vector, top: bool):
         # equal distance from the outside
         magnetShift = self.dimensions.pinWidth / cos(radians(30)) / (cos(radians(30)) + 1)
         location = shiftVector(vector, magnetShift, 180 if top else 0)
 
-        return Part.makeCylinder(self.dimensions.magnetDiameter / 2, self.dimensions.magnetHeight, location)
+        return Part.makeCylinder(self.dimensions.magnetDiameter / 2, self.dimensions.magnetHeightFloor, location)
 
-    def createMagnetHoles(self):
+    def createMagnetHoles(self, magnetHeight: float):
         fusedMagnetHoles = None
 
         for i in range(1, self.rowCount):
             startDown = i % 2 == 0
-            magnetHoles = self.createMagnetHolesWall(startDown, 3)
+            magnetHoles = self.createMagnetHolesWall(startDown, 3, magnetHeight)
             magnetHoles = magnetHoles.translate(self.getRowShift(i, 0, startDown))
             fusedMagnetHoles = magnetHoles if fusedMagnetHoles is None else fusedMagnetHoles.fuse(magnetHoles)
 
@@ -132,7 +132,7 @@ class CondensedWalls:
             shift = 1 if i == self.rowCount and i % 2 == 0 else 0
             for j in range(2):
                 startDown = i == 0
-                magnetHoles = self.createMagnetHolesWall(startDown, 0)
+                magnetHoles = self.createMagnetHolesWall(startDown, 0, magnetHeight)
                 magnetHoles = magnetHoles.translate(self.getRowShift(i, j * 2 + shift, startDown))
                 fusedMagnetHoles = fusedMagnetHoles.fuse(magnetHoles)
 
@@ -143,7 +143,7 @@ class CondensedBoard:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
-    def createFloor(self):
+    def createFloor(self, floorThickness: float = None, hexWidth: float = None):
         fusedFace = None
         sameRowHexDistanceX = self.dimensions.hexWidth + self.dimensions.adjacentDistance
         evenRowsShiftX = self.dimensions.hexWidth / 2
@@ -151,38 +151,65 @@ class CondensedBoard:
             for j in range(2):
                 shallowEdges = [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
                 roundedVertices = [HexTileVertices.NW, HexTileVertices.SW] if j == 0 else [HexTileVertices.NE, HexTileVertices.SE]
-                wire = createRoundedHexTile(self.dimensions.hexWidth, self.dimensions.pinRadius, roundedVertices, shallowEdges)
+                wire = createRoundedHexTile(hexWidth or self.dimensions.hexWidth, self.dimensions.pinRadius, roundedVertices, shallowEdges)
                 wire.translate(Vector(evenRowsShiftX * (i % 2) + sameRowHexDistanceX * j, i * self.dimensions.getCondensedDistanceY()))
                 face = Part.Face(wire)
                 fusedFace = face if fusedFace is None else fusedFace.fuse(face)
         y = self.dimensions.getDistanceFromHexCentreToOuterPinAngle()
         fusedFace.translate(Vector(0, y))
 
-        return fusedFace.extrude(Vector(0, 0, self.dimensions.floorThickness))
+        return fusedFace.extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
 
     def createCeiling(self) -> Shape:
         hexes = self.createFloor()
         ceilingDimensions = copy.copy(self.dimensions)
         ceilingDimensions.pinLength = ceilingDimensions.pinLength + 1.5
+
         wallsFactory = CondensedWalls(ceilingDimensions, self.rowCount)
 
         walls = wallsFactory.createInnerWalls(self.dimensions.pinHeight + self.dimensions.floorThickness)
         walls.translate(Vector(0, 0, -self.dimensions.pinHeight))
         return hexes.fuse(walls).removeSplitter()
 
+    def createMagneticCeiling(self) -> Shape:
+        ceiling = self.createFloor(self.dimensions.ceilingThickness)
+        walls = self.createWalls(self.dimensions.ceilingThickness, False, self.dimensions.magnetHeightCeiling)
+        ceiling = ceiling.fuse(walls)
+
+        hexesLedge = self.createFloor(self.dimensions.ceilingLedgeThickness, self.dimensions.hexWidth - self.dimensions.ceilingLedgeDelta * 2)
+        hexesLedge = hexesLedge.translate(Vector(0, 0, -self.dimensions.ceilingLedgeThickness))
+        ceiling = ceiling.fuse(hexesLedge)
+
+        # hexesHollow = self.createFloor(self.dimensions.ceilingThickness + self.dimensions.ceilingLedgeThickness - self.dimensions.floorThickness, self.dimensions.hexWidth - self.dimensions.ceilingHollowDelta * 2)
+        # hexesHollow = hexesHollow.translate(Vector(0, 0, self.dimensions.floorThickness - self.dimensions.ceilingLedgeThickness))
+        # ceiling = ceiling.cut(hexesHollow)
+
+        # walls.translate(Vector(0, 0, -self.dimensions.pinHeight))
+
+        return ceiling
+
+    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float):
+        wallFactory = CondensedWalls(self.dimensions, self.rowCount)
+        walls = wallFactory.createOuterWalls(height)
+
+        if magnetHeight is not None:
+            magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
+            if magnetsTop:
+                magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
+            walls = walls.cut(magnetHoles)
+
+        innerWall = wallFactory.createInnerWalls(height)
+        walls = walls.fuse(innerWall)
+
+        return walls
+
     def createBoard(self):
         floor = self.createFloor()
         floorFeature = Part.show(floor, "floor v2")
         floorFeature.ViewObject.ShapeColor = (0.4, 0.8, 0.4)
 
-        wallFactory = CondensedWalls(self.dimensions, self.rowCount)
-        magnetHoles = wallFactory.createMagnetHoles()
-        magnetHoles = magnetHoles.translate(Vector(0, 0, self.dimensions.floorThickness + self.dimensions.pinHeight - self.dimensions.magnetHeight))
-        innerWall = wallFactory.createInnerWalls(self.dimensions.pinHeight + self.dimensions.floorThickness)
-        innerWall = innerWall.cut(magnetHoles)
-        outerWall = wallFactory.createOuterWalls(self.dimensions.pinHeight + self.dimensions.floorThickness)
-        outerWall = outerWall.cut(magnetHoles)
-        wallFeature = show(innerWall.fuse(outerWall), "wall")
+        walls = self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor)
+        wallFeature = show(walls, "wall")
         wallFeature.ViewObject.ShapeColor = (0.2, 0.2, 0.7)
         wallFeature.ViewObject.Transparency = 50
 
@@ -191,8 +218,14 @@ class CondensedBoard:
 
         # ceiling = self.createCeiling()
         # ceiling.translate(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
-        # ceiling = ceiling.cut(wall)
+        # ceiling = ceiling.cut(walls)
         # ceilingFeature = Part.show(ceiling, "floor v2")
+        # ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
+        # ceilingFeature.ViewObject.Transparency = 50
+
+        # ceiling = self.createMagneticCeiling()
+        # # ceiling = ceiling.translate(Vector(0, 0, self.dimensions.pinHeight * 2))
+        # ceilingFeature = Part.show(ceiling, "ceiling")
         # ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
         # ceilingFeature.ViewObject.Transparency = 50
 

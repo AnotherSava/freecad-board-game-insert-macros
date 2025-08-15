@@ -34,7 +34,23 @@ FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 configuration = GridConfiguration(2, 1, 4)
 # configuration = GridConfiguration(3, 4, 3)
 
-dimensions = GridDimensions(28, 2.5, 6, 1, 3, 0.8, 0)
+dimensions = GridDimensions(
+    hexWidth=28,
+    pinWidth=3.5,
+    pinLength=6,
+    pinRadius=1,
+    pinHeight=3,
+    floorThickness=0.8,
+    ceilingThickness=1.5,
+    ceilingLedgeThickness=1,
+    ceilingLedgeDelta=0.4,
+    ceilingHollowDelta=1.2,
+    adjacentDistance=0,
+    magnetDiameter=3,
+    magnetHeightFloor=3,
+    magnetHeightCeiling=1,
+    extruderWidth=0.42
+)
 
 # hexBoard = HexBoard(configuration, dimensions)
 # hexBoard.createBoard()

@@ -79,9 +79,14 @@ class GridDimensions:
     pinRadius: float
     pinHeight: float
     floorThickness: float
+    ceilingThickness: float
+    ceilingLedgeThickness: float
+    ceilingLedgeDelta: float
+    ceilingHollowDelta: float
     adjacentDistance: float = None # distance between adjacent tiles that are not separated by a pin
     magnetDiameter: float = 2
-    magnetHeight: float = 1
+    magnetHeightFloor: float = 3
+    magnetHeightCeiling: float = 1
     extruderWidth: float = 0.42
 
     def getHexSizeY(self):
