@@ -14,3 +14,35 @@ This Python project uses **camelCase** naming convention for variables instead o
 - Improves code readability when mixing project code with FreeCAD library calls
 
 When writing or modifying code in this project, please follow the camelCase convention for all new variable names.
+
+## Import Guidelines
+
+### Import Placement
+All import statements should be placed at the top of the file, following Python PEP 8 conventions. Avoid adding import statements in the middle of functions or methods.
+
+### Examples:
+- **Good**: Place all imports at the top of the file
+```python
+import math
+import Part
+from FreeCAD import Vector
+from dataclasses import dataclass
+
+class MyClass:
+    def myMethod(self):
+        result = math.cos(angle)
+```
+
+- **Avoid**: Adding imports inside functions or methods
+```python
+class MyClass:
+    def myMethod(self):
+        import math  # Avoid this
+        result = math.cos(angle)
+```
+
+### Rationale:
+- Follows Python PEP 8 style guidelines
+- Makes dependencies clear and visible at the beginning of the file
+- Improves code readability and maintainability
+- Prevents potential import-related performance issues

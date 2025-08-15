@@ -1,11 +1,14 @@
 import FreeCAD
 import importlib
 
-from Inserts.common import geometry
+from Inserts.common import geometry, cylinders, pencil
 importlib.reload(geometry) # force FreeCAD to reload modules
+importlib.reload(cylinders) # force FreeCAD to reload modules
+importlib.reload(pencil) # force FreeCAD to reload modules
 
-from Inserts import components
+from Inserts import components, company
 importlib.reload(components) # force FreeCAD to reload modules
+importlib.reload(company) # force FreeCAD to reload modules
 
 from Inserts.hex import pin
 importlib.reload(pin) # force FreeCAD to reload modules
@@ -20,11 +23,12 @@ importlib.reload(hextiles) # force FreeCAD to reload modules
 from Inserts.hex import condensed
 importlib.reload(condensed) # force FreeCAD to reload modules
 
+from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.hextiles import HexBoard, PinConfiguration
 from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
 
-document = FreeCAD.newDocument('18xx-v3-rev')
+document = FreeCAD.newDocument('18xx-v4-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
@@ -56,7 +60,28 @@ dimensions = GridDimensions(
 # hexBoard.createBoard()
 
 
-condensedBoard = CondensedBoard(dimensions, 2)
-condensedBoard.createBoard()
+# condensedBoard = CondensedBoard(dimensions, 2)
+# condensedBoard.createBoard()
+
+companyBoxDimensions = company.Dimensions(
+    cylinderObjectSets = [
+        CylinderObjectSet(name="markers", diameter=13.4, height=7, count=2),
+        CylinderObjectSet(name="stations", diameter=10.95, height=10.3, count=5)
+    ],
+    lidLength=41,
+    lidWidthFront=64,
+    lidWidthBack=62.8,
+    lidHeight=2.7,
+    lidGap=1,
+
+    wallThickness=4,
+    floorHeight=0.8,
+    lidWidthDelta=1.2,
+    lidLengthDelta=0.8,
+    aboveLidHeight=1.2,
+    aboveLidLength=20.5
+)
+companyBox = CompanyBox(companyBoxDimensions)
+companyBox.createBox()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')
