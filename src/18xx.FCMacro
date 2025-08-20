@@ -6,7 +6,8 @@ importlib.reload(geometry) # force FreeCAD to reload modules
 importlib.reload(cylinders) # force FreeCAD to reload modules
 importlib.reload(pencil) # force FreeCAD to reload modules
 
-from Inserts import components, company
+from Inserts import components, company, lidbox
+importlib.reload(lidbox) # force FreeCAD to reload modules
 importlib.reload(components) # force FreeCAD to reload modules
 importlib.reload(company) # force FreeCAD to reload modules
 
@@ -71,7 +72,7 @@ companyBoxDimensions = company.Dimensions(
     lidLength=41,
     lidWidthFront=64,
     lidWidthBack=62.8,
-    lidHeight=2.7,
+    lidHeight=2.8,
     lidGap=1,
 
     wallThickness=4,

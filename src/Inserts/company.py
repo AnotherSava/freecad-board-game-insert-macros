@@ -1,11 +1,10 @@
-import math
-
 import Part
 from FreeCAD import Vector
 
 from Inserts.common.cylinders import MultiCylinderHolder
-from Inserts.common.pencil import Pencil
+from Inserts.lidbox import SlidingLidBox
 from dataclasses import dataclass
+
 
 @dataclass
 class CylinderObjectSet:
@@ -69,37 +68,20 @@ class CompanyBox:
         self.dimensions = dimensions
 
     def createBox(self):
-        outerBox = Part.makeBox(self.dimensions.getBoxWidth(), self.dimensions.getBoxLength(), self.dimensions.getBoxHeight())
-
-        # Create inner cavity
-        innerBox = Part.makeBox(self.dimensions.getInnerWidth(), self.dimensions.getBoxLength(), self.dimensions.getInnerHeight())
-        innerBox.translate(Vector(self.dimensions.wallThickness, 0, self.dimensions.getRecessDepth() + self.dimensions.floorHeight))
-
-        # Cut inner from outer to create hollow box
-        hollowBox = outerBox.cut(innerBox)
+        slidingLidBox = SlidingLidBox(self.dimensions)
+        hollowBox = slidingLidBox.createBox()
 
         fusedRecesses = self.createRecess()
 
-        lid = self.createLid()
-        lid = lid.translate(Vector(0, 0, self.dimensions.getBoxHeight() - self.dimensions.lidHeight - self.dimensions.aboveLidHeight))
-
-        boxWithRecesses = hollowBox.cut(fusedRecesses).cut(lid)
+        boxWithRecesses = hollowBox.cut(fusedRecesses)
 
         feature = Part.show(boxWithRecesses, "box")
         feature.ViewObject.ShapeColor = (0.8, 0.2, 0.2)
         feature.ViewObject.Transparency = 50
 
-        # feature = Part.show(lid, "lid")
-        # feature.ViewObject.ShapeColor = (0.2, 0.8, 0.2)
-        # feature.ViewObject.Transparency = 80
-
         # feature = Part.show(fusedRecesses, "objects")
         # feature.ViewObject.ShapeColor = (0.2, 0.2, 0.8)
         # feature.ViewObject.Transparency = 60
-
-        # feature = Part.show(innerBox, "inner")
-        # feature.ViewObject.ShapeColor = (0.8, 0.8, 0.8)
-        # feature.ViewObject.Transparency = 75
 
     def createRecess(self):
         emptyLength = self.dimensions.getBoxLength() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)
@@ -121,24 +103,3 @@ class CompanyBox:
             shiftY += objectSet.diameter
 
         return fusedRecesses
-
-    def createLid(self):
-        return self.createBottomLid().fuse(self.createTopLid())
-
-    def createBottomLid(self):
-        pencil = Pencil()
-        pencil.arc(self.dimensions.lidWidthDelta, 0, 90)
-        pencil.jump(Vector((self.dimensions.getBoxWidth() - self.dimensions.lidWidthBack) / 2, self.dimensions.lidLength, 0))
-        pencil.right(self.dimensions.lidWidthBack)
-        pencil.jump(Vector(self.dimensions.getBoxWidth() - self.dimensions.lidWidthDelta, self.dimensions.lidWidthDelta))
-        pencil.arc(self.dimensions.lidWidthDelta, -90, 90)
-        return pencil.extrude(self.dimensions.lidHeight)
-
-    def createTopLid(self):
-        pencil = Pencil(Vector(0, 0, self.dimensions.lidHeight))
-        pencil.up(self.dimensions.aboveLidLength)
-        pencil.arc(self.dimensions.wallThickness, 0, 90)
-        pencil.right(self.dimensions.getInnerWidth())
-        pencil.arc(self.dimensions.wallThickness, -90, 90)
-        pencil.down(self.dimensions.aboveLidLength)
-        return pencil.extrude(self.dimensions.aboveLidHeight)
