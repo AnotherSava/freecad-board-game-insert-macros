@@ -4,15 +4,33 @@ import Part
 from FreeCAD import Vector
 
 from Inserts.common.geometry import createVector
+from dataclasses import dataclass
 
+
+@dataclass
+class CylinderObjectSet:
+    diameter: float
+    height: float
+    name: str = None
+    count: float = None
+
+    def getRecessDepth(self):
+        return self.height * 0.4
+
+    def getVisibleHeight(self):
+        return self.height - self.getRecessDepth()
 
 class MultiCylinderHolder:
-    def __init__(self, diameter: float, count: int):
+    def __init__(self, diameter: float, count: int, horizontal: bool = True):
         self.diameter = diameter
         self.count = count
+        self.horizontal = horizontal
 
     def getTotalWidth(self):
-        return self.diameter * self.count
+        return self.diameter * (self.count if self.horizontal else 1)
+
+    def getTotalLength(self):
+        return self.diameter * (1 if self.horizontal else self.count)
 
     def getCircleCentre(self, index: int) -> Vector:
         return Vector(self.diameter * (index + 0.5), self.diameter / 2)
@@ -46,5 +64,27 @@ class MultiCylinderHolder:
 
     def create(self, height: float):
         wire = self.createWire()
+
+        if not self.horizontal:
+            wire.rotate(Vector(self.diameter / 2, self.diameter / 2, 0), Vector(0, 0, 1),90)
+
         face = Part.Face(wire)
         return face.extrude(Vector(0, 0, height))
+
+class DistinctCylinderHolder:
+    def __init__(self, diameter: float, count: int, width: float):
+        self.diameter = diameter
+        self.count = count
+        self.width = width
+
+    def getCircleCentre(self, index: int) -> Vector:
+        return Vector((self.width / self.count) * (index + 0.5), self.diameter / 2)
+
+    def create(self, height: float):
+        result = None
+
+        for i in range(self.count):
+            cylinder = Part.makeCylinder(self.diameter / 2, height, self.getCircleCentre(i))
+            result = cylinder if result is None else result.fuse(cylinder)
+
+        return result

@@ -1,63 +1,20 @@
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.cylinders import MultiCylinderHolder
-from Inserts.lidbox import SlidingLidBox
+from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet
+from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
 
 
 @dataclass
-class CylinderObjectSet:
-    name: str
-    diameter: float
-    height: float
-    count: float
-
-    def getRecessDepth(self):
-        return self.height * 0.4
-
-    def getVisibleHeight(self):
-        return self.height - self.getRecessDepth()
-
-@dataclass
-class Dimensions:
+class Dimensions(LidBoxDimensions):
     cylinderObjectSets: list[CylinderObjectSet]
-    lidLength: float
-    lidWidthFront: float
-    lidWidthBack: float
-    lidHeight: float
-    lidGap: float
-
-    wallThickness: float
-    floorHeight: float
-    lidWidthDelta: float
-    lidLengthDelta: float
-    aboveLidHeight: float
-    aboveLidLength: float
-
-    def getBoxWidth(self):
-        return self.lidWidthFront + 2 * self.lidWidthDelta
-
-    def getInnerWidth(self):
-        return self.getBoxWidth() - 2 * self.wallThickness
-
-    def getBoxLength(self):
-        return self.lidLength + self.lidLengthDelta
 
     def getMaxObjectsHeight(self):
         return max(objectSet.height for objectSet in self.cylinderObjectSets)
 
     def getMinObjectsVisibleHeight(self):
         return min(objectSet.getVisibleHeight() for objectSet in self.cylinderObjectSets)
-
-    def getRecessDepth(self):
-        return self.getMaxObjectsHeight() - self.getMinObjectsVisibleHeight()
-
-    def getInnerHeight(self):
-        return self.aboveLidHeight + self.lidHeight + self.lidGap + self.getMinObjectsVisibleHeight()
-
-    def getBoxHeight(self):
-        return self.floorHeight + self.getRecessDepth() + self.getInnerHeight()
 
 
 # Holder for a public company: shares (except for concession) and markers

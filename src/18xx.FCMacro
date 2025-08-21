@@ -1,15 +1,17 @@
 import FreeCAD
 import importlib
 
-from Inserts.common import geometry, cylinders, pencil
+from Inserts.common import geometry, cylinders, pencil, fuser
 importlib.reload(geometry) # force FreeCAD to reload modules
 importlib.reload(cylinders) # force FreeCAD to reload modules
 importlib.reload(pencil) # force FreeCAD to reload modules
+importlib.reload(fuser) # force FreeCAD to reload modules
 
-from Inserts import components, company, lidbox
+from Inserts import components, company, lidbox, charters
 importlib.reload(lidbox) # force FreeCAD to reload modules
 importlib.reload(components) # force FreeCAD to reload modules
 importlib.reload(company) # force FreeCAD to reload modules
+importlib.reload(charters) # force FreeCAD to reload modules
 
 from Inserts.hex import pin
 importlib.reload(pin) # force FreeCAD to reload modules
@@ -25,11 +27,13 @@ from Inserts.hex import condensed
 importlib.reload(condensed) # force FreeCAD to reload modules
 
 from Inserts.company import CompanyBox, CylinderObjectSet
+from Inserts.lidbox import LidDimensions
+from Inserts.charters import CharterBox
 from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.hextiles import HexBoard, PinConfiguration
 from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
 
-document = FreeCAD.newDocument('18xx-v4-rev')
+document = FreeCAD.newDocument('18xx-v5-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
@@ -65,24 +69,45 @@ dimensions = GridDimensions(
 # condensedBoard.createBoard()
 
 companyBoxDimensions = company.Dimensions(
-    cylinderObjectSets = [
+    lid = LidDimensions(
+        lidLength=41,
+        lidWidthBack=62.8,
+        lidHeight=2.8
+    ),
+
+    wallThickness = 4,
+    floorHeight = 0.8,
+
+    cylinderObjectSets=[
         CylinderObjectSet(name="markers", diameter=13.4, height=7, count=2),
         CylinderObjectSet(name="stations", diameter=10.95, height=10.3, count=5)
-    ],
-    lidLength=41,
-    lidWidthFront=64,
-    lidWidthBack=62.8,
-    lidHeight=2.8,
-    lidGap=1,
-
-    wallThickness=4,
-    floorHeight=0.8,
-    lidWidthDelta=1.2,
-    lidLengthDelta=0.8,
-    aboveLidHeight=1.2,
-    aboveLidLength=20.5
+    ]
 )
 companyBox = CompanyBox(companyBoxDimensions)
-companyBox.createBox()
+# companyBox.createBox()
+
+charterBoxDimensions = charters.Dimensions(
+    lid=LidDimensions(
+        lidLength=127,
+        lidWidthBack=190.8,
+        lidHeight=3.5,
+        simplify=True
+    ),
+
+    wallThickness=6,
+    floorHeight=0.8,
+
+    markers=CylinderObjectSet(diameter=13.4, height=7),
+    stations=CylinderObjectSet(diameter=10.95, height=10.3),
+
+    fontHeight=1.2,
+    numberSpace=10,
+    numberFontSize=4,
+    cylinderDistanceY=4,
+    numberFont="C:/Windows/Fonts/arialbd.ttf"
+    # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
+)
+trainBox = CharterBox(charterBoxDimensions, document)
+trainBox.createBox()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')
