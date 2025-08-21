@@ -48,8 +48,13 @@ class Pencil:
         face = Part.Face(wire)
         return face.extrude(Vector(0, 0, height))
 
+    def extrudeX(self, height: float):
+        solid = self.extrude(height)
+        solid.rotate(Vector(0, 0, 0), Vector(1, 0, 0), 90).rotate(Vector(0, 0, 0), Vector(0, 0, 1), 90)
+        return solid
+
     def createWire(self):
         if self.location != self.start:
-            self.curves.append(Part.LineSegment(self.location, self.start))
+            self.jump(self.start)
 
         return Part.Wire([curve.toShape() for curve in self.curves])

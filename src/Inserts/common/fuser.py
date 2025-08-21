@@ -8,20 +8,23 @@ from dataclasses import dataclass
 
 
 class Fuser:
-    def __init__(self):
-        self.result = None
+    def __init__(self, *args):
+        self.result = fuse(*args)
 
-    def fuse(self, nextPiece):
-        self.result = nextPiece if self.result is None else self.result.fuse(nextPiece)
+    def fuse(self, *args):
+        self.result = fuse(self.result, *args)
 
     def getResult(self):
         return self.result
 
 
-def fuseAll(*args):
-    fuser = Fuser()
+def fuse(*args):
+    return fuseAll(args)
+
+def fuseAll(args):
+    result = None
 
     for arg in args:
-        fuser.fuse(arg)
+        result = arg if result is None else result.fuse(arg)
 
-    return fuser.getResult()
+    return result

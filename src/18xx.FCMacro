@@ -104,8 +104,12 @@ charterBoxDimensions = charters.Dimensions(
     numberSpace=10,
     numberFontSize=4,
     cylinderDistanceY=4,
-    numberFont="C:/Windows/Fonts/arialbd.ttf"
+    numberFont="C:/Windows/Fonts/arialbd.ttf",
     # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
+
+    cubeSpaceWidth=9,
+    cubeSpaceLength=48,
+    cubeSpaceAngle=30
 )
 trainBox = CharterBox(charterBoxDimensions, document)
 trainBox.createBox()
