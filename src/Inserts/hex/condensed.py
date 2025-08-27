@@ -5,8 +5,10 @@ import copy
 from FreeCAD import Vector
 from Part import Wire, Shape, show
 
+from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import shiftVector, createWire, invertX
 from Inserts.common.hexes import createRoundedHexTile
+from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import GridDimensions, HexTileVertices, HexTileEdges
 
 
@@ -97,6 +99,29 @@ class CondensedWalls:
 
         return fusedWall.extrude(Vector(0, 0, height))
 
+    def createDividerWall(self, height: float) -> Part.Solid:
+        side = self.dimensions.adjacentDistance / 2 / sin(radians(60))
+
+        pencil = Pencil()
+        pencil.draw(side, -60)
+        pencil.draw(side, -120)
+        pencil.up(self.dimensions.getHexSide())
+        pencil.draw(side, 120)
+        pencil.draw(side, 60)
+        return pencil.extrude(height)
+
+    def createDividerWalls(self, height: float) -> Part.Solid:
+        fuser = Fuser()
+
+        for row in range(self.rowCount):
+            wallDivider = self.createDividerWall(height)
+            x = self.dimensions.getCondensedDistanceX() / 2 * (row % 2) + self.dimensions.hexWidth / 2
+            y = self.dimensions.getCondensedDistanceY() * row + self.dimensions.getDistanceFromHexCentreToOuterPinAngle() - self.dimensions.getHexSide() / 2
+            wallDivider.translate(Vector(x, y))
+            fuser.fuse(wallDivider)
+
+        return fuser.getResult()
+
     def createMagnetHole(self, vector: Vector, top: bool, magnetHeight: float):
         v1 = Vector(0, -self.dimensions.extruderWidth / cos(radians(30)))
         v2 = shiftVector(v1, self.dimensions.magnetDiameter / 2 * (1 + tan(radians(30))), -120)
@@ -143,14 +168,31 @@ class CondensedBoard:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
+    def chooseRoundedVertices(self, column: int, row: int, rowCount: int):
+        if column == 0:
+            if row % 2 == 0:
+                return [HexTileVertices.NW, HexTileVertices.SW]
+            if row == rowCount - 1:
+                return [HexTileVertices.NW]
+
+        else:
+            if row % 2 == 1:
+                return [HexTileVertices.SE, HexTileVertices.NE]
+            if row == 0:
+                return [HexTileVertices.SE]
+            if row == rowCount - 1:
+                return [HexTileVertices.NE]
+
+        return []
+
     def createFloor(self, floorThickness: float = None, hexWidth: float = None):
         fusedFace = None
         sameRowHexDistanceX = self.dimensions.hexWidth + self.dimensions.adjacentDistance
-        evenRowsShiftX = self.dimensions.hexWidth / 2
+        evenRowsShiftX = (self.dimensions.hexWidth +self.dimensions.adjacentDistance) / 2
         for i in range(self.rowCount):
             for j in range(2):
                 shallowEdges = [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
-                roundedVertices = [HexTileVertices.NW, HexTileVertices.SW] if j == 0 else [HexTileVertices.NE, HexTileVertices.SE]
+                roundedVertices = self.chooseRoundedVertices(j, i, self.rowCount)
                 wire = createRoundedHexTile(hexWidth or self.dimensions.hexWidth, self.dimensions.pinRadius, roundedVertices, shallowEdges)
                 wire.translate(Vector(evenRowsShiftX * (i % 2) + sameRowHexDistanceX * j, i * self.dimensions.getCondensedDistanceY()))
                 face = Part.Face(wire)
@@ -172,8 +214,8 @@ class CondensedBoard:
         return hexes.fuse(walls).removeSplitter()
 
     def createMagneticCeiling(self) -> Shape:
-        ceiling = self.createFloor(self.dimensions.ceilingThickness)
-        walls = self.createWalls(self.dimensions.ceilingThickness, False, self.dimensions.magnetHeightCeiling)
+        ceiling = self.createFloor(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling)
+        walls = self.createWalls(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling, False, self.dimensions.magnetHeightCeiling)
         ceiling = ceiling.fuse(walls)
 
         hexesLedge = self.createFloor(self.dimensions.ceilingLedgeThickness, self.dimensions.hexWidth - self.dimensions.ceilingLedgeDelta * 2)
@@ -199,7 +241,9 @@ class CondensedBoard:
             walls = walls.cut(magnetHoles)
 
         innerWall = wallFactory.createInnerWalls(height)
-        walls = walls.fuse(innerWall)
+
+        dividerWalls = wallFactory.createDividerWalls(height)
+        walls = walls.fuse(innerWall).fuse(dividerWalls)
 
         return walls
 
@@ -216,6 +260,7 @@ class CondensedBoard:
         # magnetHolesFeature = show(magnetHoles, "magnet holes")
         # magnetHolesFeature.ViewObject.ShapeColor = (0.2, 0.7, 0.7)
 
+    def createLid(self):
         # ceiling = self.createCeiling()
         # ceiling.translate(Vector(0, 0, self.dimensions.pinHeight + self.dimensions.floorThickness))
         # ceiling = ceiling.cut(walls)
@@ -223,9 +268,9 @@ class CondensedBoard:
         # ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
         # ceilingFeature.ViewObject.Transparency = 50
 
-        # ceiling = self.createMagneticCeiling()
-        # # ceiling = ceiling.translate(Vector(0, 0, self.dimensions.pinHeight * 2))
-        # ceilingFeature = Part.show(ceiling, "ceiling")
-        # ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
+        ceiling = self.createMagneticCeiling()
+        # ceiling = ceiling.translate(Vector(0, 0, self.dimensions.pinHeight * 2))
+        ceilingFeature = Part.show(ceiling, "ceiling")
+        ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
         # ceilingFeature.ViewObject.Transparency = 50
 

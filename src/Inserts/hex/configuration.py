@@ -89,6 +89,9 @@ class GridDimensions:
     magnetHeightCeiling: float = 1
     extruderWidth: float = 0.42
 
+    def getHexSide(self):
+        return self.hexWidth * tan(radians(30))
+
     def getHexSizeY(self):
         return self.hexWidth / cos(radians(30))
 
@@ -111,8 +114,10 @@ class GridDimensions:
         return hexWidth / 2 / cos(radians(30))
 
     def getCondensedDistanceY(self):
-        sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
-        return (self.hexWidth + self.pinWidth) / cos(radians(30)) - sameRowHexDistanceX / 2 * tan(radians(30))
+        return (self.hexWidth + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
+
+    def getCondensedDistanceX(self):
+        return self.hexWidth + self.adjacentDistance
 
 # value represents angle (CCW from y axis)
 class HexPinSide(IntEnum):
