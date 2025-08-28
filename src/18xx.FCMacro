@@ -13,15 +13,8 @@ importlib.reload(components) # force FreeCAD to reload modules
 importlib.reload(company) # force FreeCAD to reload modules
 importlib.reload(charters) # force FreeCAD to reload modules
 
-from Inserts.hex import pin
-importlib.reload(pin) # force FreeCAD to reload modules
-importlib.reload(pin) # force FreeCAD to reload modules
-
 from Inserts.hex import configuration
 importlib.reload(configuration) # force FreeCAD to reload modules
-
-from Inserts.hex import hextiles
-importlib.reload(hextiles) # force FreeCAD to reload modules
 
 from Inserts.hex import condensed
 importlib.reload(condensed) # force FreeCAD to reload modules
@@ -30,8 +23,7 @@ from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.lidbox import LidDimensions
 from Inserts.charters import CharterBox
 from Inserts.hex.condensed import CondensedBoard
-from Inserts.hex.hextiles import HexBoard, PinConfiguration
-from Inserts.hex.configuration import GridConfiguration, GridDimensions, HexTimeShiftDirection
+from Inserts.hex.configuration import GridDimensions
 
 document = FreeCAD.newDocument('18xx-v5-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
