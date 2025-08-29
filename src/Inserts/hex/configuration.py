@@ -55,7 +55,6 @@ class GridDimensions:
     ceilingThickness: float
     ceilingLedgeThickness: float
     ceilingLedgeDelta: float
-    ceilingHollowDelta: float
     adjacentDistance: float # distance between horizontally adjacent tiles
     magnetDiameter: float
     magnetHeightFloor: float

@@ -14,6 +14,10 @@ class Fuser:
     def fuse(self, *args):
         self.result = fuse(self.result, *args)
 
+    def cut(self, *args):
+        for arg in args:
+            self.result = self.result.cut(arg)
+
     def getResult(self):
         return self.result
 

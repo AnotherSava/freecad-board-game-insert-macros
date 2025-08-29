@@ -213,39 +213,37 @@ class CondensedBoard:
         walls.translate(Vector(0, 0, -self.dimensions.pinHeight))
         return hexes.fuse(walls).removeSplitter()
 
-    def createMagneticCeiling(self) -> Shape:
-        ceiling = self.createFloor(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling)
-        walls = self.createWalls(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling, False, self.dimensions.magnetHeightCeiling)
-        ceiling = ceiling.fuse(walls)
+    def createMagneticLidExternals(self) -> Shape:
+        return self.createWalls(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling, False, self.dimensions.magnetHeightCeiling, False, True)
 
+    def createMagneticLidLedge(self) -> Shape:
         hexesLedge = self.createFloor(self.dimensions.ceilingLedgeThickness, self.dimensions.hexWidth - self.dimensions.ceilingLedgeDelta * 2)
-        hexesLedge = hexesLedge.translate(Vector(0, 0, -self.dimensions.ceilingLedgeThickness))
-        ceiling = ceiling.fuse(hexesLedge)
+        hexesLedge.translate(Vector(0, 0, -self.dimensions.ceilingLedgeThickness))
+        return hexesLedge
 
-        # hexesHollow = self.createFloor(self.dimensions.ceilingThickness + self.dimensions.ceilingLedgeThickness - self.dimensions.floorThickness, self.dimensions.hexWidth - self.dimensions.ceilingHollowDelta * 2)
-        # hexesHollow = hexesHollow.translate(Vector(0, 0, self.dimensions.floorThickness - self.dimensions.ceilingLedgeThickness))
-        # ceiling = ceiling.cut(hexesHollow)
+    def createMagneticLidInternals(self) -> Shape:
+        walls = self.createWalls(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling, False, self.dimensions.magnetHeightCeiling, True, False)
+        ceiling = self.createFloor(self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling)
 
-        # walls.translate(Vector(0, 0, -self.dimensions.pinHeight))
+        return walls.fuse(ceiling)
 
-        return ceiling
-
-    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float):
+    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, internal: bool = True, external: bool = True):
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
-        walls = wallFactory.createOuterWalls(height)
+        fuser = Fuser()
 
-        if magnetHeight is not None:
-            magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
-            if magnetsTop:
-                magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
-            walls = walls.cut(magnetHoles)
+        if external:
+            fuser.fuse(wallFactory.createOuterWalls(height))
 
-        innerWall = wallFactory.createInnerWalls(height)
+            if magnetHeight is not None:
+                magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
+                if magnetsTop:
+                    magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
+                fuser.cut(magnetHoles)
 
-        dividerWalls = wallFactory.createDividerWalls(height)
-        walls = walls.fuse(innerWall).fuse(dividerWalls)
+        if internal:
+            fuser.fuse(wallFactory.createInnerWalls(height), wallFactory.createDividerWalls(height))
 
-        return walls
+        return fuser.getResult()
 
     def createBoard(self):
         floor = self.createFloor()
@@ -268,9 +266,18 @@ class CondensedBoard:
         # ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
         # ceilingFeature.ViewObject.Transparency = 50
 
-        ceiling = self.createMagneticCeiling()
-        # ceiling = ceiling.translate(Vector(0, 0, self.dimensions.pinHeight * 2))
-        ceilingFeature = Part.show(ceiling, "ceiling")
-        ceilingFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
-        # ceilingFeature.ViewObject.Transparency = 50
+        internalLid = self.createMagneticLidInternals()
+        internalLidFeature = Part.show(internalLid, "internalLid")
+        internalLidFeature.ViewObject.ShapeColor = (0.8, 0.4, 0.4)
+        internalLidFeature.ViewObject.Transparency = 30
+
+        externalLid = self.createMagneticLidExternals()
+        externalLidFeature = Part.show(externalLid, "externalLid")
+        externalLidFeature.ViewObject.ShapeColor = (0.2, 0.2, 0.8)
+        externalLidFeature.ViewObject.Transparency = 30
+
+        lidLedge = self.createMagneticLidLedge()
+        lidLedgeFeature = Part.show(lidLedge, "lidLedge")
+        lidLedgeFeature.ViewObject.ShapeColor = (0.2, 0.8, 0.2)
+        lidLedgeFeature.ViewObject.Transparency = 30
 
