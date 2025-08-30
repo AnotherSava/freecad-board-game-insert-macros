@@ -13,7 +13,7 @@ def createRoundedHexTile(tileWidth: float, roundingRadius: float = 0, roundedVer
     edges = list()
 
     # Create shortened edges with arc connections
-    for currentVertex in sorted(HexTileVertices, key=lambda vertex: vertex.value):
+    for currentVertex in HexTileVertices.iterate():
         nextVertex = currentVertex.getNextCounterClockWise()
 
         # Shorten the edge by arcOffset at each end if needed

@@ -1,9 +1,7 @@
-from math import cos, radians
-
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import createVector, shiftVector
+from Inserts.common.geometry import shiftVector
 
 
 class Pencil:
@@ -14,8 +12,8 @@ class Pencil:
 
     def arc(self, radius: float, centreAngle: float, arcDegrees: float):
         centre = shiftVector(self.location, radius, centreAngle)
-        degreesDestinationFromCentre = ((arcDegrees + centreAngle + 180) % 360) * (1 if arcDegrees > 0 else -1)
-        degreesMiddleFromCentre = ((arcDegrees / 2 + centreAngle + 180) % 360) * (1 if arcDegrees > 0 else -1)
+        degreesDestinationFromCentre = ((arcDegrees + centreAngle + 180) % 360)
+        degreesMiddleFromCentre = ((arcDegrees / 2 + centreAngle + 180) % 360)
         destination = shiftVector(centre, radius, degreesDestinationFromCentre)
         middle = shiftVector(centre, radius, degreesMiddleFromCentre)
         self.curves.append(Part.Arc(self.location, middle, destination))

@@ -44,6 +44,14 @@ class HexTileVertices(IntEnum):
     def getNextCounterClockWise(self) -> 'HexTileVertices':
         return HexTileVertices((self.value + 60) % 360)
 
+    @classmethod
+    def iterate(cls, start: 'HexTileVertices' = N):
+        sortedVertices = sorted(cls, key=lambda v: v.value)
+        startIndex = sortedVertices.index(start)
+        for i in range(len(sortedVertices)):
+            yield sortedVertices[(startIndex + i) % len(sortedVertices)]
+
+
 @dataclass
 class GridDimensions:
     hexWidth: float
