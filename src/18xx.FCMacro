@@ -1,11 +1,15 @@
 import FreeCAD
 import importlib
+import Part
 
-from Inserts.common import geometry, cylinders, pencil, fuser
+from Inserts.common import geometry, cylinders, pencil, fuser, colours
+from Inserts.common.colours import Colour
+
 importlib.reload(geometry) # force FreeCAD to reload modules
 importlib.reload(cylinders) # force FreeCAD to reload modules
 importlib.reload(pencil) # force FreeCAD to reload modules
 importlib.reload(fuser) # force FreeCAD to reload modules
+importlib.reload(colours) # force FreeCAD to reload modules
 
 from Inserts import components, company, lidbox, charters
 importlib.reload(lidbox) # force FreeCAD to reload modules
@@ -13,8 +17,9 @@ importlib.reload(components) # force FreeCAD to reload modules
 importlib.reload(company) # force FreeCAD to reload modules
 importlib.reload(charters) # force FreeCAD to reload modules
 
-from Inserts.hex import configuration
+from Inserts.hex import configuration, images
 importlib.reload(configuration) # force FreeCAD to reload modules
+importlib.reload(images) # force FreeCAD to reload modules
 
 from Inserts.hex import condensed
 importlib.reload(condensed) # force FreeCAD to reload modules
@@ -23,7 +28,8 @@ from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.lidbox import LidDimensions
 from Inserts.charters import CharterBox
 from Inserts.hex.condensed import CondensedBoard
-from Inserts.hex.configuration import GridDimensions
+from Inserts.hex.configuration import GridDimensions, HexTileEdges
+from Inserts.hex.images import HexImageDimensions, Images
 
 document = FreeCAD.newDocument('18xx-v5-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
@@ -111,8 +117,27 @@ def createCharterBox():
     charterBox = CharterBox(charterBoxDimensions, document)
     charterBox.createBox()
 
+def createImage():
+    hexImageDimensions = HexImageDimensions(
+        imageHeight = 0.32,
+        hexWidth = 27,
+        railWidth = 2,
+        townBarWidth = 5,
+        townBarLength = 1.5,
+        cityDiameter = 10,
+        townDiameter = 4,
+        scale = 1,
+        lineWidth = 0.45
+    )
+
+    imageFactory = Images(hexImageDimensions)
+    sample = imageFactory.createGentleTown(Colour.YELLOW,HexTileEdges.NE)
+    sample.show()
+
+
 # createCompanyBox()
-createBoard()
+# createBoard()
 # createCharterBox()
+createImage()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')

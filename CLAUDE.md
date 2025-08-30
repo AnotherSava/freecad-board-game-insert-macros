@@ -46,3 +46,31 @@ class MyClass:
 - Makes dependencies clear and visible at the beginning of the file
 - Improves code readability and maintainability
 - Prevents potential import-related performance issues
+
+## Method Call Parameter Spacing
+
+When calling methods with explicitly named parameters, add spaces before and after the "=" sign for improved readability.
+
+### Examples:
+- **Good**: Use spaces around equals in parameter assignments
+```python
+result = SomeClass(
+    width = 10,
+    height = 20,
+    color = "blue"
+)
+```
+
+- **Avoid**: No spaces around equals
+```python
+result = SomeClass(
+    width=10,
+    height=20,
+    color="blue"
+)
+```
+
+### Rationale:
+- Improves visual separation between parameter names and values
+- Enhances code readability when parameters span multiple lines
+- Maintains consistency across the codebase
