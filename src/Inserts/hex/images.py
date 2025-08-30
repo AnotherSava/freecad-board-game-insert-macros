@@ -37,12 +37,14 @@ class HexImageDimensions:
     cityDiameter: float
     townDiameter: float
     lineWidth: float
+    whiteLayerHeight: float
     scale: float
 
     def __init__(self, imageHeight: float, hexWidth: float, railWidth: float,
                  townBarWidth: float, townBarLength: float, cityDiameter: float,
-                 townDiameter: float, scale: float, lineWidth: float):
+                 townDiameter: float, scale: float, lineWidth: float, whiteLayerHeight: float):
         self.imageHeight = imageHeight
+        self.whiteLayerHeight = whiteLayerHeight
         self.scale = scale
 
         self.hexWidth = hexWidth * scale
@@ -55,6 +57,9 @@ class HexImageDimensions:
 
         self.hex = Hex(self.hexWidth, Vector(0, 0))
 
+    def getTotalHeight(self):
+        return self.imageHeight + self.whiteLayerHeight
+
     def createOutline(self) -> 'HexImageDimensions':
         return HexImageDimensions(
             imageHeight = self.imageHeight,
@@ -65,7 +70,8 @@ class HexImageDimensions:
             cityDiameter = self.cityDiameter + self.lineWidth * 2,
             townDiameter = self.townDiameter + self.lineWidth * 2,
             scale = self.scale,
-            lineWidth = self.lineWidth
+            lineWidth = self.lineWidth,
+            whiteLayerHeight = self.whiteLayerHeight
         )
 
 class BaseElementFactory:
@@ -229,34 +235,34 @@ class Images:
 
         return multiFuser.fuseAll(self.createTile())
 
-    def createStraight(self, colour: Colour, startEdge: HexTileEdges):
+    def createStraight(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createStraight, startEdge)
 
-    def createGentle(self, colour: Colour, startEdge: HexTileEdges):
+    def createGentle(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createGentle, startEdge)
 
-    def createSharp(self, colour: Colour, startEdge: HexTileEdges):
+    def createSharp(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createSharp, startEdge)
 
-    def createStraightTown(self, colour: Colour, startEdge: HexTileEdges):
+    def createStraightTown(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createStraightTown, startEdge)
 
-    def createGentleTown(self, colour: Colour, startEdge: HexTileEdges):
+    def createGentleTown(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createGentleTown, startEdge)
 
-    def createSharpTown(self, colour: Colour, startEdge: HexTileEdges):
+    def createSharpTown(self, colour: Colour, startEdge: HexTileEdges) -> MultiColourFuser:
         return self.createSimpleTile(colour, BaseElementFactory.createSharpTown, startEdge)
 
-    def createSharpCity(self, side: HexTileEdges) -> MultiColourFuser:
-        return self.createCity(side, side.getNextCounterClockWise())
+    def createSharpCity(self, colour: Colour, side: HexTileEdges) -> MultiColourFuser:
+        return self.createCity(colour, side, side.getNextCounterClockWise())
 
-    def createGentleCity(self, side: HexTileEdges) -> MultiColourFuser:
-        return self.createCity(side, side.getNextCounterClockWise(2))
+    def createGentleCity(self, colour: Colour, side: HexTileEdges) -> MultiColourFuser:
+        return self.createCity(colour, side, side.getNextCounterClockWise(2))
 
     def createTile(self) -> MultiColourFuser:
         multiFuser = MultiColourFuser()
 
-        multiFuser.fuse(Colour.BLACK, self.createBase(0.16, 1.2 - self.dimensions.imageHeight))
-        multiFuser.fuse(Colour.WHITE, self.createBase(0, 0.16))
+        # multiFuser.fuse(Colour.BLACK, self.createBase(0.16, 1.2 - self.dimensions.imageHeight))
+        multiFuser.fuse(Colour.WHITE, self.createBase(0, self.dimensions.whiteLayerHeight))
 
         return multiFuser

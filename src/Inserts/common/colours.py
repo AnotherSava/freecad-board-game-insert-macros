@@ -1,8 +1,9 @@
 from math import floor
 
 import Part
+from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser
+from Inserts.common.fuser import Fuser, fuseAll
 from enum import IntEnum
 
 
@@ -59,7 +60,22 @@ class MultiColourFuser:
             uniqueSolid = uniqueSolid.cut(fuser.getResult())
 
         return self.fuse(colour, uniqueSolid)
-    
+
+    def common(self, solid: Part.Solid) -> 'MultiColourFuser':
+        for fuser in self.fuserByColour.values():
+            fuser.common(solid)
+
+        return self
+
+    def translate(self, vector: Vector) -> 'MultiColourFuser':
+        for fuser in self.fuserByColour.values():
+            fuser.translate(vector)
+
+        return self
+
+    def getResult(self):
+        return fuseAll(fuser.getResult() for fuser in self.fuserByColour.values())
+
     def show(self):
         for (color, fuser) in self.fuserByColour.items():
             feature = Part.show(fuser.getResult(), color.getName())

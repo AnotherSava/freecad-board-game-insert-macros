@@ -1,9 +1,11 @@
 import FreeCAD
+from FreeCAD import Vector
+
 import importlib
 import Part
 
 from Inserts.common import geometry, cylinders, pencil, fuser, colours
-from Inserts.common.colours import Colour
+from Inserts.common.colours import Colour, MultiColourFuser
 
 importlib.reload(geometry) # force FreeCAD to reload modules
 importlib.reload(cylinders) # force FreeCAD to reload modules
@@ -35,36 +37,77 @@ document = FreeCAD.newDocument('18xx-v5-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
+gridDimensions = GridDimensions(
+    hexWidth=28,
+    pinWidth=3.5,
+    pinLength=6,
+    pinRadius=1,
+    pinHeight=8.5,
+    floorThickness=1.6,
+    ceilingThickness=0.8,
+    ceilingLedgeThickness=1.2,
+    ceilingLedgeDelta=0.4,
+    adjacentDistance=1.2,
+    magnetDiameter=3,
+    magnetHeightFloor=3,
+    magnetHeightCeiling=2,
+    extruderWidth=0.42
+)
+
+hexImageDimensions = HexImageDimensions(
+    imageHeight=0.32,
+    hexWidth=28,
+    railWidth=2,
+    townBarWidth=5,
+    townBarLength=1.5,
+    cityDiameter=10,
+    townDiameter=4,
+    scale=1,
+    lineWidth=0.45,
+    whiteLayerHeight=0.16
+)
+
+def createImage():
+    imageFactory = Images(hexImageDimensions)
+    sample = imageFactory.createGentleTown(Colour.YELLOW,HexTileEdges.NE)
+    sample.show()
 
 def createBoard():
-    # configuration = GridConfiguration(1, 0, 1, HexTimeShiftDirection.UP)
-    # configuration = GridConfiguration(1, 1, 2, HexTimeShiftDirection.UP)
-    # configuration = GridConfiguration(2, 2, 4, HexTimeShiftDirection.UP)
-    # configuration = GridConfiguration(2, 1, 4)
-    # configuration = GridConfiguration(3, 4, 3)
-    dimensions = GridDimensions(
-        hexWidth=28,
-        pinWidth=3.5,
-        pinLength=6,
-        pinRadius=1,
-        pinHeight=8.5,
-        floorThickness=1.6,
-        ceilingThickness=0.8,
-        ceilingLedgeThickness=1.2,
-        ceilingLedgeDelta=0.4,
-        adjacentDistance=1.2,
-        magnetDiameter=3,
-        magnetHeightFloor=3,
-        magnetHeightCeiling=2,
-        extruderWidth=0.42
-    )
-
-    # hexBoard = HexBoard(configuration, dimensions)
-    # hexBoard.createBoard()
-
-    condensedBoard = CondensedBoard(dimensions, 8)
+    condensedBoard = CondensedBoard(gridDimensions, 8)
     # condensedBoard.createBoard()
     condensedBoard.createLid()
+
+def createBoardWithImage():
+    condensedBoard = CondensedBoard(gridDimensions, 8)
+    imageFactory = Images(hexImageDimensions)
+    boardFuser = condensedBoard.createBoardFuser().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
+
+    multiFuser = MultiColourFuser()
+
+    multiFuser.fuseAll(imageFactory.createGentleTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(0, 0)))
+    multiFuser.fuseAll(imageFactory.createSharpTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(0, 1)))
+
+    for column in range(2):
+        multiFuser.fuseAll(imageFactory.createStraightTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(1, column)))
+
+    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.E).translate(gridDimensions.getHexCentre(2, 0)))
+    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.SE).translate(gridDimensions.getHexCentre(2, 1)))
+
+    multiFuser.fuseAll(imageFactory.createSharp(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(3, 0)))
+    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.NE).translate(gridDimensions.getHexCentre(3, 1)))
+
+    for row in [4, 5]:
+        for column in range(2):
+            multiFuser.fuseAll(imageFactory.createGentle(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(row, column)))
+
+    for row in [6, 7]:
+        for column in range(2):
+            multiFuser.fuseAll(imageFactory.createStraight(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(row, column)))
+
+    multiFuser.common(boardFuser.getResult())
+    boardFuser.cut(multiFuser.getResult())
+    multiFuser.fuse(Colour.BLACK, boardFuser.getResult())
+    multiFuser.show()
 
 def createCompanyBox():
     companyBoxDimensions = company.Dimensions(
@@ -117,27 +160,11 @@ def createCharterBox():
     charterBox = CharterBox(charterBoxDimensions, document)
     charterBox.createBox()
 
-def createImage():
-    hexImageDimensions = HexImageDimensions(
-        imageHeight = 0.32,
-        hexWidth = 27,
-        railWidth = 2,
-        townBarWidth = 5,
-        townBarLength = 1.5,
-        cityDiameter = 10,
-        townDiameter = 4,
-        scale = 1,
-        lineWidth = 0.45
-    )
-
-    imageFactory = Images(hexImageDimensions)
-    sample = imageFactory.createGentleTown(Colour.YELLOW,HexTileEdges.NE)
-    sample.show()
-
 
 # createCompanyBox()
-# createBoard()
+createBoard()
+# createBoardWithImage()
 # createCharterBox()
-createImage()
+# createImage()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')

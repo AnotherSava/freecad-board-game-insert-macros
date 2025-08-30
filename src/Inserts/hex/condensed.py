@@ -186,21 +186,17 @@ class CondensedBoard:
         return []
 
     def createFloor(self, floorThickness: float = None, hexWidth: float = None):
-        fusedFace = None
-        sameRowHexDistanceX = self.dimensions.hexWidth + self.dimensions.adjacentDistance
-        evenRowsShiftX = (self.dimensions.hexWidth +self.dimensions.adjacentDistance) / 2
+        fuser = Fuser()
         for i in range(self.rowCount):
             for j in range(2):
                 shallowEdges = [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
                 roundedVertices = self.chooseRoundedVertices(j, i, self.rowCount)
                 wire = createRoundedHexTile(hexWidth or self.dimensions.hexWidth, self.dimensions.pinRadius, roundedVertices, shallowEdges)
-                wire.translate(Vector(evenRowsShiftX * (i % 2) + sameRowHexDistanceX * j, i * self.dimensions.getCondensedDistanceY()))
+                wire.translate(self.dimensions.getHexCentre(i, j))
                 face = Part.Face(wire)
-                fusedFace = face if fusedFace is None else fusedFace.fuse(face)
-        y = self.dimensions.getDistanceFromHexCentreToOuterPinAngle()
-        fusedFace.translate(Vector(0, y))
+                fuser.fuse(face)
 
-        return fusedFace.extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
+        return fuser.getResult().extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
 
     def createCeiling(self) -> Shape:
         hexes = self.createFloor()
@@ -244,6 +240,11 @@ class CondensedBoard:
             fuser.fuse(wallFactory.createInnerWalls(height), wallFactory.createDividerWalls(height))
 
         return fuser.getResult()
+
+    def createBoardFuser(self) -> Fuser:
+        floor = self.createFloor()
+        walls = self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor)
+        return Fuser(floor, walls)
 
     def createBoard(self):
         floor = self.createFloor()

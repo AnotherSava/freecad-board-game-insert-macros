@@ -89,3 +89,8 @@ class GridDimensions:
 
     def getCondensedDistanceX(self):
         return self.hexWidth + self.adjacentDistance
+
+    def getHexCentre(self, row: int, column: int) -> Vector:
+        sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
+        evenRowsShiftX = (self.hexWidth + self.adjacentDistance) / 2
+        return Vector(evenRowsShiftX * (row % 2) + sameRowHexDistanceX * column, row * self.getCondensedDistanceY() + self.getDistanceFromHexCentreToOuterPinAngle())
