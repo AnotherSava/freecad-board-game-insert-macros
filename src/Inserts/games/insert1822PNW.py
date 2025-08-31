@@ -24,7 +24,8 @@ gridDimensions = GridDimensions(
     magnetDiameter=3,
     magnetHeightFloor=3,
     magnetHeightCeiling=2,
-    extruderWidth=0.42
+    extruderWidth=0.42,
+    maxRowsPerMagnet=4
 )
 
 hexImageDimensions = HexImageDimensions(
@@ -88,7 +89,7 @@ charterBoxDimensions = charters.Dimensions(
 def createYellowTileBoard() -> MultiColourFuser:
     condensedBoard = CondensedBoard(gridDimensions, 8)
     imageFactory = Images(hexImageDimensions)
-    boardFuser = condensedBoard.createBoardFuser().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
+    boardFuser = condensedBoard.createBoard().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
 
     multiFuser = MultiColourFuser()
 
@@ -114,7 +115,7 @@ def createYellowTileBoard() -> MultiColourFuser:
 
     multiFuser.common(boardFuser.getResult())
     boardFuser.cut(multiFuser.getResult())
-    multiFuser.fuse(Colour.BLACK, boardFuser.getResult())
+    multiFuser.fuseAll(boardFuser)
     return multiFuser
 
 def createCompanyBox() -> MultiColourFuser:
@@ -124,3 +125,16 @@ def createCompanyBox() -> MultiColourFuser:
 def createCharterBox(document: FreeCAD.Document) -> MultiColourFuser:
     charterBox = CharterBox(charterBoxDimensions, document)
     return charterBox.createBox()
+
+# ------------------ TESTING STUFF -----------------
+
+def createImage():
+    imageFactory = Images(hexImageDimensions)
+    sample = imageFactory.createGentleTown(Colour.YELLOW,HexTileEdges.NE)
+    sample.show()
+
+def createBoard():
+    condensedBoard = CondensedBoard(gridDimensions, 8)
+    # condensedBoard.createBoard().show()
+    condensedBoard.createLid()
+

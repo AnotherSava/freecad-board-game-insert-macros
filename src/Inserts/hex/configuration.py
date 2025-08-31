@@ -71,6 +71,7 @@ class GridDimensions:
     magnetHeightFloor: float
     magnetHeightCeiling: float
     extruderWidth: float
+    maxRowsPerMagnet: int
 
     def getHexSide(self):
         return self.hexWidth * tan(radians(30))

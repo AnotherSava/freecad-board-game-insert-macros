@@ -26,6 +26,8 @@ class Colour(IntEnum):
     GREEN = createColour(0.0, 1.0, 0.0)
     WHITE = createColour(1.0, 1.0, 1.0)
     YELLOW = createColour(1.0, 1.0, 0.0)
+    MESH = createColour(0.8, 0.0, 0.8)
+    WALLED_MESH = createColour(0.3, 0.0, 0.3)
 
     def decode(self) -> tuple[float, float, float]:
         redInt = (self.value >> 16) & 0xFF
@@ -50,9 +52,10 @@ class MultiColourFuser:
 
         return self
 
-    def fuseAll(self, other: 'MultiColourFuser') -> 'MultiColourFuser':
-        for (colour, fuser) in other.fuserByColour.items():
-            self.fuse(colour, fuser.getResult())
+    def fuseAll(self, *args: 'MultiColourFuser') -> 'MultiColourFuser':
+        for arg in args:
+            for (colour, fuser) in arg.fuserByColour.items():
+                self.fuse(colour, fuser.getResult())
 
         return self
     
@@ -63,9 +66,19 @@ class MultiColourFuser:
 
         return self.fuse(colour, uniqueSolid)
 
+    def replace(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
+        self.cut(solid)
+        return self.fuse(colour, solid)
+
     def common(self, solid: Part.Solid) -> 'MultiColourFuser':
         for fuser in self.fuserByColour.values():
             fuser.common(solid)
+
+        return self
+
+    def cut(self, solid: Part.Solid) -> 'MultiColourFuser':
+        for fuser in self.fuserByColour.values():
+            fuser.cut(solid)
 
         return self
 
@@ -78,7 +91,7 @@ class MultiColourFuser:
     def getResult(self):
         return fuseAll(fuser.getResult() for fuser in self.fuserByColour.values())
 
-    def show(self, transparency: int = 100):
+    def show(self, transparency: int = 0):
         for (color, fuser) in self.fuserByColour.items():
             feature = Part.show(fuser.getResult(), color.getName())
             feature.ViewObject.ShapeColor = color.decode()

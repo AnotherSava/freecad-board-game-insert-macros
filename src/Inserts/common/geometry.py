@@ -1,7 +1,7 @@
 from math import cos, sin, radians
 
 from FreeCAD import Vector
-from Part import LineSegment
+from Part import LineSegment, Solid, Face
 from Part import Wire
 
 
@@ -28,3 +28,7 @@ def createWire(points: list[Vector]) -> Wire:
         edges.append(edge)
 
     return Wire([edge.toShape() for edge in edges])
+
+def extrudeWire(wire: Wire, height: float) -> Solid:
+    face = Face(wire)
+    return face.extrude(Vector(0, 0, height))
