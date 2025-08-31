@@ -4,6 +4,7 @@ import Part
 import Draft
 from FreeCAD import Vector, Document
 
+from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
 from Inserts.common.fuser import Fuser, fuse, fuseAll
 from Inserts.common.pencil import Pencil
@@ -96,9 +97,8 @@ class CharterBox:
         # feature.ViewObject.Transparency = 50
 
         # feature = Part.show(hollowBox, "box")
-        feature = Part.show(hollowBox.common(printBox), "box")
-        feature.ViewObject.ShapeColor = (0.8, 0.2, 0.2)
-        feature.ViewObject.Transparency = 50
+
+        return MultiColourFuser(Colour.BLACK, hollowBox.common(printBox))
 
     def alignWidth(self, width: float):
         return self.alignWithin(width, self.dimensions.wallThickness, self.dimensions.getInnerWidth() + self.dimensions.wallThickness)

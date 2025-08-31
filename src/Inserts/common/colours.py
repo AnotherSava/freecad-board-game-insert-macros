@@ -37,9 +37,11 @@ class Colour(IntEnum):
         return self.name.lower()
 
 class MultiColourFuser:
-    def __init__(self):
+    def __init__(self, colour: Colour = None, solid: Part.Solid = None):
         self.fuserByColour = {}
-    
+        if colour is not None and solid is not None:
+            self.fuse(colour, solid)
+
     def fuse(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
         if colour not in self.fuserByColour:
             self.fuserByColour[colour] = Fuser(solid)
@@ -76,7 +78,8 @@ class MultiColourFuser:
     def getResult(self):
         return fuseAll(fuser.getResult() for fuser in self.fuserByColour.values())
 
-    def show(self):
+    def show(self, transparency: int = 100):
         for (color, fuser) in self.fuserByColour.items():
             feature = Part.show(fuser.getResult(), color.getName())
             feature.ViewObject.ShapeColor = color.decode()
+            feature.ViewObject.Transparency = transparency

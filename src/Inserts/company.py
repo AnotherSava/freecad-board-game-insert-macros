@@ -1,6 +1,7 @@
 import Part
 from FreeCAD import Vector
 
+from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet
 from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
@@ -24,7 +25,7 @@ class CompanyBox:
     def __init__(self, dimensions: Dimensions):
         self.dimensions = dimensions
 
-    def createBox(self):
+    def createBox(self) -> MultiColourFuser:
         slidingLidBox = SlidingLidBox(self.dimensions)
         hollowBox = slidingLidBox.createBox()
 
@@ -32,13 +33,7 @@ class CompanyBox:
 
         boxWithRecesses = hollowBox.cut(fusedRecesses)
 
-        feature = Part.show(boxWithRecesses, "box")
-        feature.ViewObject.ShapeColor = (0.8, 0.2, 0.2)
-        feature.ViewObject.Transparency = 50
-
-        # feature = Part.show(fusedRecesses, "objects")
-        # feature.ViewObject.ShapeColor = (0.2, 0.2, 0.8)
-        # feature.ViewObject.Transparency = 60
+        return MultiColourFuser(Colour.BLACK, boxWithRecesses)
 
     def createRecess(self):
         emptyLength = self.dimensions.getBoxLength() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)
