@@ -13,6 +13,7 @@ class CylinderObjectSet:
     height: float
     name: str = None
     count: float = None
+    separate: bool = False
 
     def getRecessDepth(self):
         return self.height * 0.4
@@ -72,13 +73,19 @@ class MultiCylinderHolder:
         return face.extrude(Vector(0, 0, height))
 
 class DistinctCylinderHolder:
-    def __init__(self, diameter: float, count: int, width: float):
+    # evenCentres evenly distributes cylinder centers (rather than empty spaces) across the width
+    def __init__(self, diameter: float, count: int, width: float, evenCentres: bool = False):
         self.diameter = diameter
         self.count = count
         self.width = width
+        self.evenCentres = evenCentres
 
     def getCircleCentre(self, index: int) -> Vector:
-        return Vector((self.width / self.count) * (index + 0.5), self.diameter / 2)
+        if self.evenCentres:
+            return Vector((self.width / self.count) * (index + 0.5), self.diameter / 2)
+        else:
+            emptySpace = self.width - self.diameter * self.count
+            return Vector(emptySpace / (self.count + 1) * (index + 1) + self.diameter * (index + 0.5), self.diameter / 2)
 
     def create(self, height: float):
         result = None

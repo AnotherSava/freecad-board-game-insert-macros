@@ -1,3 +1,5 @@
+from math import tan, radians
+
 import Part
 from FreeCAD import Vector
 
@@ -5,12 +7,13 @@ from Inserts.common.geometry import shiftVector
 
 
 class Pencil:
+    # If relative, all vectors are relative to start vector
     def __init__(self, start: Vector = Vector(0, 0)):
         self.curves = []
         self.start = start
         self.location = start
 
-    def arc(self, radius: float, centreAngle: float, arcDegrees: float):
+    def arcWithRadius(self, radius: float, centreAngle: float, arcDegrees: float):
         centre = shiftVector(self.location, radius, centreAngle)
         degreesDestinationFromCentre = ((arcDegrees + centreAngle + 180) % 360)
         degreesMiddleFromCentre = ((arcDegrees / 2 + centreAngle + 180) % 360)
@@ -20,14 +23,45 @@ class Pencil:
         self.location = destination
         return self
 
-    def jump(self, destination: Vector):
-        self.curves.append(Part.LineSegment(self.location, destination))
-        self.location = destination
+    # create arc with specific destination and angle measure
+    def arcTo(self, absDestination: Vector, angle: float):
+        # Calculate chord (straight line distance between start and end)
+        chord = absDestination - self.location
+        chordMidpoint = (self.location + absDestination) / 2
+        
+        # Direction perpendicular to chord (for center calculation)
+        perpDirection = Vector(-chord.y, chord.x).normalize()
+
+        perpDistance = chord.Length / 2 * tan(radians(angle / 2))
+        midpoint = chordMidpoint - perpDirection * perpDistance
+        self.curves.append(Part.Arc(self.location, midpoint, absDestination))
+        self.location = absDestination
         return self
+
+    # create arc with specific destination and angle measure
+    def arcFromStart(self, destination: Vector, angle: float):
+        return self.arcTo(destination + self.start, angle)
+
+    # create arc with specific destination and angle measure
+    def arc(self, destination: Vector, angle: float):
+        return self.arcTo(destination + self.location, angle)
+
+    def jumpTo(self, absDestination: Vector):
+        self.curves.append(Part.LineSegment(self.location, absDestination))
+        self.location = absDestination
+        return self
+
+    def jump(self, destination: Vector):
+        return self.jumpTo(destination + self.location)
+
+    def jumpFromStart(self, destination: Vector):
+        return self.jumpTo(destination + self.start)
 
     def draw(self, length: float, angle: float):
         destination = shiftVector(self.location, length, angle)
-        return self.jump(destination)
+        self.curves.append(Part.LineSegment(self.location, destination))
+        self.location = destination
+        return self
 
     def up(self, length: float):
         return self.draw(length, 0)
@@ -48,11 +82,12 @@ class Pencil:
 
     def extrudeX(self, height: float):
         solid = self.extrude(height)
-        solid.rotate(Vector(0, 0, 0), Vector(1, 0, 0), 90).rotate(Vector(0, 0, 0), Vector(0, 0, 1), 90)
+        solid.rotate(self.start, Vector(1, 0, 0), 90).rotate(self.start, Vector(0, 0, 1), 90)
         return solid
 
     def createWire(self):
+        curves = self.curves
         if self.location != self.start:
-            self.jump(self.start)
+            curves.append(Part.LineSegment(self.location, self.start))
 
-        return Part.Wire([curve.toShape() for curve in self.curves])
+        return Part.Wire([curve.toShape() for curve in curves])

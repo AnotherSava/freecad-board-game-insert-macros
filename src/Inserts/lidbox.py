@@ -9,21 +9,20 @@ class LidDimensions:
     lidLength: float
     lidWidthBack: float
     lidHeight: float
-    lidGap: float = 1
-    lidWidthDelta: float = 1.2
-    lidLengthDelta: float = 0.8
-    aboveLidHeight: float = 1.2
-    simplify: bool = False # for prototype prints to avoid support
-
-    lidWidthFront: float = None
-    aboveLidLength: float = None
-
-    lidWidthMultiplier: float = 1.02
-    aboveLidLengthMultiplier: float = 0.5
+    lidGap: float
+    lidWidthDelta: float
+    lidLengthDelta: float
+    aboveLidHeight: float
+    lidWidthMultiplier: float
+    aboveLidLengthMultiplier: float
+    supportLengthMultiplier: float
+    simplify: bool = False
+    supportWidth: float = None
 
     def __post_init__(self):
         self.lidWidthFront = self.lidWidthBack * self.lidWidthMultiplier
-        self.aboveLidLength = self.lidLength * self.aboveLidLengthMultiplier
+        self.aboveLidLength = self.lidLength * self.aboveLidLengthMultiplier + self.lidLengthDelta
+        self.supportLength = self.lidLength * self.supportLengthMultiplier
 
 @dataclass
 class LidBoxDimensions:
@@ -65,23 +64,34 @@ class SlidingLidBox:
         lid = self.createLid()
         lid.translate(Vector(0, 0, self.dimensions.getBoxHeight() - self.dimensions.lid.lidHeight - self.dimensions.lid.aboveLidHeight))
 
-        return outerBox.cut(innerBox).cut(lid)
+        box = outerBox.cut(innerBox).cut(lid)
+        if self.dimensions.lid.supportWidth:
+            box = box.fuse(self.createLidSupport())
+
+        return box
+
+    def createLidSupport(self) -> Part.Solid:
+        supportHeight = self.dimensions.getInnerHeight() - self.dimensions.lid.lidHeight - self.dimensions.lid.aboveLidHeight
+
+        pencil = Pencil(Vector((self.dimensions.getBoxWidth() - self.dimensions.lid.supportWidth) / 2, 0, self.dimensions.floorHeight + self.dimensions.getRecessDepth()))
+        pencil.arcWithRadius(supportHeight, -90, -90)
+        pencil.right(self.dimensions.lid.supportLength - supportHeight)
+        pencil.down(supportHeight)
+
+        return pencil.extrudeX(self.dimensions.lid.supportWidth)
 
     def createLid(self):
         lid = self.createBottomLid()
 
-        if not self.dimensions.lid.simplify:
-            lid = lid.fuse(self.createTopLid())
-
-        return lid
+        return lid if self.dimensions.lid.simplify else lid.fuse(self.createTopLid()).fuse(self.createTopLidBevel())
 
     def createBottomLid(self):
         pencil = Pencil()
-        pencil.arc(self.dimensions.lid.lidWidthDelta, 0, 90)
-        pencil.jump(Vector((self.dimensions.getBoxWidth() - self.dimensions.lid.lidWidthBack) / 2, self.dimensions.lid.lidLength, 0))
+        pencil.arcWithRadius(self.dimensions.lid.lidWidthDelta, 0, 90)
+        pencil.jumpFromStart(Vector((self.dimensions.getBoxWidth() - self.dimensions.lid.lidWidthBack) / 2, self.dimensions.lid.lidLength, 0))
         pencil.right(self.dimensions.lid.lidWidthBack)
-        pencil.jump(Vector(self.dimensions.getBoxWidth() - self.dimensions.lid.lidWidthDelta, self.dimensions.lid.lidWidthDelta))
-        pencil.arc(self.dimensions.lid.lidWidthDelta, -90, 90)
+        pencil.jumpFromStart(Vector(self.dimensions.getBoxWidth() - self.dimensions.lid.lidWidthDelta, self.dimensions.lid.lidWidthDelta))
+        pencil.arcWithRadius(self.dimensions.lid.lidWidthDelta, -90, 90)
 
         height = self.dimensions.lid.lidHeight
         if self.dimensions.lid.simplify:
@@ -92,8 +102,17 @@ class SlidingLidBox:
     def createTopLid(self):
         pencil = Pencil(Vector(0, 0, self.dimensions.lid.lidHeight))
         pencil.up(self.dimensions.lid.aboveLidLength)
-        pencil.arc(self.dimensions.wallThickness, 0, 90)
+        pencil.arcWithRadius(self.dimensions.wallThickness, 0, 90)
         pencil.right(self.dimensions.getInnerWidth())
-        pencil.arc(self.dimensions.wallThickness, -90, 90)
+        pencil.arcWithRadius(self.dimensions.wallThickness, -90, 90)
         pencil.down(self.dimensions.lid.aboveLidLength)
         return pencil.extrude(self.dimensions.lid.aboveLidHeight)
+
+    def createTopLidBevel(self):
+        pencil = Pencil(Vector(self.dimensions.lid.lidWidthDelta, 0, self.dimensions.lid.lidHeight))
+        pencil.up(self.dimensions.lid.aboveLidHeight)
+        pencil.right(self.dimensions.lid.aboveLidLength)
+        pencil.arc(Vector(self.dimensions.lid.aboveLidHeight * 3, -self.dimensions.lid.aboveLidHeight), 10)
+        solid = pencil.extrudeX(self.dimensions.lid.lidWidthFront)
+
+        return solid

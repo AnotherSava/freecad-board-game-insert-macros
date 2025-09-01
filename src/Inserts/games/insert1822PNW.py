@@ -43,9 +43,17 @@ hexImageDimensions = HexImageDimensions(
 
 companyBoxDimensions = company.Dimensions(
     lid=LidDimensions(
-        lidLength=41,
+        lidLength=40.8,
         lidWidthBack=62.8,
-        lidHeight=2.8
+        lidHeight=3.2,
+        lidGap=1,
+        lidWidthDelta=1.2,
+        lidLengthDelta=0.8,
+        aboveLidHeight=1.2,
+        lidWidthMultiplier=1.02,
+        aboveLidLengthMultiplier=0.5,
+        supportWidth=1.2,
+        supportLengthMultiplier=11/30
     ),
 
     wallThickness=4,
@@ -53,7 +61,7 @@ companyBoxDimensions = company.Dimensions(
 
     cylinderObjectSets=[
         CylinderObjectSet(name="markers", diameter=13.4, height=7, count=2),
-        CylinderObjectSet(name="stations", diameter=10.95, height=10.3, count=5)
+        CylinderObjectSet(name="stations", diameter=10.95, height=10.3, count=5, separate=True)
     ]
 )
 
@@ -62,7 +70,14 @@ charterBoxDimensions = charters.Dimensions(
         lidLength=127,
         lidWidthBack=190.8,
         lidHeight=3.5,
-        simplify=True
+        lidGap=0,
+        lidWidthDelta=1.2,
+        lidLengthDelta=0.8,
+        aboveLidHeight=1.2,
+        simplify=True,
+        lidWidthMultiplier=1.02,
+        aboveLidLengthMultiplier=0.5,
+        supportLengthMultiplier=0.3
     ),
 
     wallThickness=6,

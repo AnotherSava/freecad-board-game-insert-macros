@@ -10,9 +10,8 @@ importlib.reload(pencil) # force FreeCAD to reload modules
 importlib.reload(fuser) # force FreeCAD to reload modules
 importlib.reload(colours) # force FreeCAD to reload modules
 
-from Inserts import components, company, lidbox, charters
+from Inserts import company, lidbox, charters
 importlib.reload(lidbox) # force FreeCAD to reload modules
-importlib.reload(components) # force FreeCAD to reload modules
 importlib.reload(company) # force FreeCAD to reload modules
 importlib.reload(charters) # force FreeCAD to reload modules
 
@@ -34,9 +33,9 @@ FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 # fuser = insert1822PNW.createYellowTileBoard()
 # fuser = insert1822PNW.createCharterBox(document)
-# fuser = insert1822PNW.createCompanyBox()
-# fuser.show(50)
+fuser = insert1822PNW.createCompanyBox()
+fuser.show(50)
 
-insert1822PNW.createBoard()
+# insert1822PNW.createBoard()
 
 FreeCAD.Gui.SendMsgToActiveView('ViewFit')

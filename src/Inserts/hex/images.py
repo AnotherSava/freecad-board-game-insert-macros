@@ -127,9 +127,9 @@ class BaseElementFactory:
         internalRadius = (self.dimensions.hex.getSide() - self.dimensions.railWidth) / 2 + outsideRadius
         externalRadius = (self.dimensions.hex.getSide() + self.dimensions.railWidth) / 2 + outsideRadius
 
-        pencil.arc(externalRadius, 180, -angle)
+        pencil.arcWithRadius(externalRadius, 180, -angle)
         pencil.draw(self.dimensions.railWidth, 180 - angle)
-        pencil.arc(internalRadius, 180 - angle, angle)
+        pencil.arcWithRadius(internalRadius, 180 - angle, angle)
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
@@ -141,19 +141,19 @@ class BaseElementFactory:
         townBarExternalAngle = 180 * self.dimensions.townBarLength / externalRadius / pi
         townBarInternalAngle = 180 * self.dimensions.townBarLength / internalRadius / pi
 
-        pencil.arc(externalRadius, 180, -(angle - townBarExternalAngle) / 2)
+        pencil.arcWithRadius(externalRadius, 180, -(angle - townBarExternalAngle) / 2)
         pencil.draw((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2, -angle / 2)
         pencil.draw(self.dimensions.townBarLength, -angle / 2 - 90)
         pencil.draw((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2, 180 - angle / 2)
-        pencil.arc(externalRadius, 180 -(angle + townBarExternalAngle) / 2, -(angle - townBarExternalAngle) / 2)
+        pencil.arcWithRadius(externalRadius, 180 - (angle + townBarExternalAngle) / 2, -(angle - townBarExternalAngle) / 2)
 
         pencil.draw(self.dimensions.railWidth, 180 - angle)
 
-        pencil.arc(internalRadius, 180 - angle, (angle - townBarInternalAngle) / 2)
+        pencil.arcWithRadius(internalRadius, 180 - angle, (angle - townBarInternalAngle) / 2)
         pencil.draw((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2, 180 - angle / 2)
         pencil.draw(self.dimensions.townBarLength, -angle / 2 + 90)
         pencil.draw((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2, -angle / 2)
-        pencil.arc(internalRadius, 180 -(angle - townBarExternalAngle) / 2, (angle - townBarInternalAngle) / 2)
+        pencil.arcWithRadius(internalRadius, 180 - (angle - townBarExternalAngle) / 2, (angle - townBarInternalAngle) / 2)
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 

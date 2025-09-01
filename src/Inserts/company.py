@@ -2,7 +2,8 @@ import Part
 from FreeCAD import Vector
 
 from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet
+from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
+from Inserts.common.fuser import Fuser
 from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
 
@@ -38,20 +39,25 @@ class CompanyBox:
     def createRecess(self):
         emptyLength = self.dimensions.getBoxLength() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)
         lengthInterval = emptyLength / (len(self.dimensions.cylinderObjectSets) + 1)
-        shiftY = 0
-        fusedRecesses = None
+        shiftY = lengthInterval
+        fuser = Fuser()
         for setIndex, objectSet in enumerate(self.dimensions.cylinderObjectSets):
-            multiCylinderHolder = MultiCylinderHolder(objectSet.diameter, objectSet.count)
-            recess = multiCylinderHolder.create(objectSet.height)
+            if objectSet.separate:
+                multiCylinderHolder = MultiCylinderHolder(objectSet.diameter, objectSet.count)
+                recess = multiCylinderHolder.create(objectSet.height)
 
-            emptyWidth = self.dimensions.getInnerWidth() - multiCylinderHolder.getTotalWidth()
-            shiftY += lengthInterval
+                emptyWidth = self.dimensions.getInnerWidth() - multiCylinderHolder.getTotalWidth()
 
-            shiftX = self.dimensions.wallThickness + emptyWidth / 2
+                shiftX = self.dimensions.wallThickness + emptyWidth / 2
+            else:
+                distinctCylinderHolder = DistinctCylinderHolder(objectSet.diameter, objectSet.count, self.dimensions.getInnerWidth(), True)
+                recess = distinctCylinderHolder.create(objectSet.height)
+                shiftX = self.dimensions.wallThickness
+
             shiftZ = self.dimensions.floorHeight + self.dimensions.getMaxObjectsHeight() - objectSet.height
             recess.translate(Vector(shiftX, shiftY, shiftZ))
-            fusedRecesses = recess if fusedRecesses is None else fusedRecesses.fuse(recess)
+            fuser.fuse(recess)
 
-            shiftY += objectSet.diameter
+            shiftY += objectSet.diameter + lengthInterval
 
-        return fusedRecesses
+        return fuser.getResult()
