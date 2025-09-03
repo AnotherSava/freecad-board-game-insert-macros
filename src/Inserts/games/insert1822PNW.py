@@ -1,9 +1,11 @@
 import FreeCAD
 from FreeCAD import Vector
 
-from Inserts import company, charters
+from Inserts import company, charters, cardbox
+from Inserts.cardbox import CardBox
 from Inserts.charters import CharterBox
 from Inserts.common.colours import Colour, MultiColourFuser
+from Inserts.common.smartbox import Side
 from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.configuration import GridDimensions, HexTileEdges
@@ -43,16 +45,17 @@ hexImageDimensions = HexImageDimensions(
 
 companyBoxDimensions = company.Dimensions(
     lid=LidDimensions(
-        lidLength=40.8,
-        lidWidthBack=62.8,
+        lidSlideInDirection=Side.S,
+        lidLength=62.8,
+        lidWidth=40.8,
         lidHeight=3.2,
         lidGap=1,
-        lidWidthDelta=1.2,
-        lidLengthDelta=0.8,
+        lidWidthWallThickness=0.8,
+        lidLengthWallThickness=1.2,
         aboveLidHeight=1.2,
-        lidWidthMultiplier=1.02,
-        aboveLidLengthMultiplier=0.5,
-        supportWidth=1.2,
+        lidEntranceSizeMultiplier=1.02,
+        aboveLidSlideCoefficient=0.5,
+        supportThickness=1.2,
         supportLengthMultiplier=11/30
     ),
 
@@ -67,16 +70,17 @@ companyBoxDimensions = company.Dimensions(
 
 charterBoxDimensions = charters.Dimensions(
     lid=LidDimensions(
+        lidSlideInDirection=Side.S,
         lidLength=127,
-        lidWidthBack=190.8,
+        lidWidth=190.8,
         lidHeight=3.5,
         lidGap=0,
-        lidWidthDelta=1.2,
-        lidLengthDelta=0.8,
+        lidWidthWallThickness=1.2,
+        lidLengthWallThickness=0.8,
         aboveLidHeight=1.2,
         simplify=True,
-        lidWidthMultiplier=1.02,
-        aboveLidLengthMultiplier=0.5,
+        lidEntranceSizeMultiplier=1.02,
+        aboveLidSlideCoefficient=0.5,
         supportLengthMultiplier=0.3
     ),
 
@@ -99,6 +103,56 @@ charterBoxDimensions = charters.Dimensions(
     playerCubeSpaceLength=49,
     cubeSpaceAngle=30,
     cubeSpaceDepth=4
+)
+
+cardBoxDimensions = cardbox.CardBoxDimensions(
+    # length=210,
+    # width=125,
+    # height=30,
+    cardLength=64,
+    cardWidth=42,
+    cardCutSize=21,
+    multiCutSize=32,
+    majorCharterCutSize=15,
+
+    scenarioTrainsHeight=5.4,
+    playerOrderHeight=2.5,
+
+    # privatesHeight=8.8,
+    privatesHeight=11.5, # using the same height for recesses saves ~10% total cost on reducing filament changes to and from support interface
+    # minorsHeight=9.7,
+    minorsHeight=11.5,
+    # ltrainsHeight=9,
+    ltrainsHeight=11.5,
+    # trainsHeight=10.9,
+    trainsHeight=11.5,
+
+    majorCharterLength = 193,
+    majorCharterWidth = 129,
+    majorChartersHeight=4.4,
+
+    minorCharterLength = 153.5,
+    minorCharterWidth = 77.7,
+    minorChartersHeight=11.5,
+
+    wallWidth=1.2,
+    
+    # LidBoxDimensions fields
+    lid=LidDimensions(
+        lidSlideInDirection=Side.E,
+        lidLength=193,
+        lidWidth=126.6,
+        lidHeight=3.55,
+        lidGap=0,
+        lidWidthWallThickness=1.2,
+        lidLengthWallThickness=1.2,
+        aboveLidHeight=1.2,
+        simplify=False,
+        lidEntranceSizeMultiplier=1.02,
+        aboveLidSlideCoefficient=0.5
+    ),
+    wallThickness=5.3,
+    floorHeight=1.2
 )
 
 def createYellowTileBoard() -> MultiColourFuser:
@@ -140,6 +194,10 @@ def createCompanyBox() -> MultiColourFuser:
 def createCharterBox(document: FreeCAD.Document) -> MultiColourFuser:
     charterBox = CharterBox(charterBoxDimensions, document)
     return charterBox.createBox()
+
+def createCardBox() -> MultiColourFuser:
+    cardBox = CardBox(cardBoxDimensions)
+    return cardBox.createBox()
 
 # ------------------ TESTING STUFF -----------------
 

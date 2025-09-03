@@ -26,6 +26,7 @@ class Colour(IntEnum):
     GREEN = createColour(0.0, 1.0, 0.0)
     WHITE = createColour(1.0, 1.0, 1.0)
     YELLOW = createColour(1.0, 1.0, 0.0)
+    BASE = createColour(0.9, 0.9, 0.1)
     MESH = createColour(0.8, 0.0, 0.8)
     WALLED_MESH = createColour(0.3, 0.0, 0.3)
 

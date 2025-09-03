@@ -1,8 +1,16 @@
 from math import cos, sin, radians
+from enum import IntEnum
 
 from FreeCAD import Vector
 from Part import LineSegment, Solid, Face
 from Part import Wire
+
+
+class Side(IntEnum):
+    S = 0
+    E = 90
+    N = 180
+    W = 270
 
 
 # angle is measured in degrees CCW from axis Y
@@ -32,3 +40,17 @@ def createWire(points: list[Vector]) -> Wire:
 def extrudeWire(wire: Wire, height: float) -> Solid:
     face = Face(wire)
     return face.extrude(Vector(0, 0, height))
+
+def alignWithin(size: float, leftBorder: float, rightBorder: float):
+    return (leftBorder + rightBorder - size) / 2
+
+def alignSeveralWithin(size: float, leftBorder: float, rightBorder: float, index: int, count: int, sideInterval: float = None):
+    if sideInterval is None:
+        interval = (leftBorder + rightBorder - size * count) / (count + 1)
+        return interval * (index + 1) + size * index
+    else:
+        interval = (leftBorder + rightBorder - size * count - sideInterval * 2) / (count - 1)
+        return sideInterval + (interval + size) * index
+
+def alignSeveralCentre(size: float, leftBorder: float, rightBorder: float, index: int, count: int, interval: float):
+    return (rightBorder + leftBorder - size * count - interval * (count - 1)) / 2 + (size + interval) * index

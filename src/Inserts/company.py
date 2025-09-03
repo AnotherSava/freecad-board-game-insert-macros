@@ -37,20 +37,20 @@ class CompanyBox:
         return MultiColourFuser(Colour.BLACK, boxWithRecesses)
 
     def createRecess(self):
-        emptyLength = self.dimensions.getBoxLength() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)
-        lengthInterval = emptyLength / (len(self.dimensions.cylinderObjectSets) + 1)
-        shiftY = lengthInterval
+        emptyWidth = self.dimensions.getBoxWidth() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)
+        widthInterval = emptyWidth / (len(self.dimensions.cylinderObjectSets) + 1)
+        shiftY = widthInterval
         fuser = Fuser()
         for setIndex, objectSet in enumerate(self.dimensions.cylinderObjectSets):
             if objectSet.separate:
                 multiCylinderHolder = MultiCylinderHolder(objectSet.diameter, objectSet.count)
                 recess = multiCylinderHolder.create(objectSet.height)
 
-                emptyWidth = self.dimensions.getInnerWidth() - multiCylinderHolder.getTotalWidth()
+                emptyLength = self.dimensions.getInnerLength() - multiCylinderHolder.getTotalWidth()
 
-                shiftX = self.dimensions.wallThickness + emptyWidth / 2
+                shiftX = self.dimensions.wallThickness + emptyLength / 2
             else:
-                distinctCylinderHolder = DistinctCylinderHolder(objectSet.diameter, objectSet.count, self.dimensions.getInnerWidth(), True)
+                distinctCylinderHolder = DistinctCylinderHolder(objectSet.diameter, objectSet.count, self.dimensions.getInnerLength(), True)
                 recess = distinctCylinderHolder.create(objectSet.height)
                 shiftX = self.dimensions.wallThickness
 
@@ -58,6 +58,6 @@ class CompanyBox:
             recess.translate(Vector(shiftX, shiftY, shiftZ))
             fuser.fuse(recess)
 
-            shiftY += objectSet.diameter + lengthInterval
+            shiftY += objectSet.diameter + widthInterval
 
         return fuser.getResult()

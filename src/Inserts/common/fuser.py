@@ -1,11 +1,27 @@
-from math import cos, radians
-
-import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import createVector
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
+
+class Fusible(ABC):
+    @abstractmethod
+    def getElement(self):
+        pass
+
+def fuse(*args):
+    return fuseAll(args)
+
+def getElement(arg):
+    return arg.getElement() if isinstance(arg, Fusible) else arg
+
+def fuseAll(args):
+    result = None
+
+    for arg in args:
+        element = getElement(arg)
+        result = element if result is None else result.fuse(element)
+
+    return result
 
 class Fuser:
     def __init__(self, *args):
@@ -17,12 +33,12 @@ class Fuser:
 
     def cut(self, *args) -> 'Fuser':
         for arg in args:
-            self.result = self.result.cut(arg)
+            self.result = self.result.cut(getElement(arg))
         return self
 
     def common(self, *args) -> 'Fuser':
         for arg in args:
-            self.result = self.result.common(arg)
+            self.result = self.result.common(getElement(arg))
         return self
 
     def translate(self, vector: Vector) -> 'Fuser':
@@ -31,15 +47,3 @@ class Fuser:
 
     def getResult(self):
         return self.result
-
-
-def fuse(*args):
-    return fuseAll(args)
-
-def fuseAll(args):
-    result = None
-
-    for arg in args:
-        result = arg if result is None else result.fuse(arg)
-
-    return result

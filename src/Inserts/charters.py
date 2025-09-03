@@ -7,6 +7,7 @@ from FreeCAD import Vector, Document
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
 from Inserts.common.fuser import Fuser, fuse, fuseAll
+from Inserts.common.geometry import alignWithin
 from Inserts.common.pencil import Pencil
 from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
@@ -88,9 +89,9 @@ class CharterBox:
         fusedRecesses = self.createRecess()
         hollowBox = hollowBox.cut(fusedRecesses)
 
-        printBox = Part.makeBox(self.dimensions.getInnerWidth() - self.dimensions.playerCubeSpaceWidth, self.dimensions.getPlayerCubeHolderLength() + 3,
-                           self.dimensions.getBoxHeight())
-        printBox.translate(Vector(self.dimensions.wallThickness + self.dimensions.playerCubeSpaceWidth / 2, self.dimensions.getBoxLength() - self.dimensions.getPlayerCubeHolderLength() - 2))
+        # printBox = Part.makeBox(self.dimensions.getInnerWidth() - self.dimensions.playerCubeSpaceWidth, self.dimensions.getPlayerCubeHolderLength() + 3,
+        #                    self.dimensions.getBoxHeight())
+        # printBox.translate(Vector(self.dimensions.wallThickness + self.dimensions.playerCubeSpaceWidth / 2, self.dimensions.getBoxLength() - self.dimensions.getPlayerCubeHolderLength() - 2))
 
         # feature = Part.show(printBox, "box")
         # feature.ViewObject.ShapeColor = (0.2, 0.8, 0.8)
@@ -98,14 +99,11 @@ class CharterBox:
 
         # feature = Part.show(hollowBox, "box")
 
-        return MultiColourFuser(Colour.BLACK, hollowBox.common(printBox))
+        # return MultiColourFuser(Colour.BLACK, hollowBox.common(printBox))
+        return MultiColourFuser(Colour.BLACK, hollowBox)
 
     def alignWidth(self, width: float):
-        return self.alignWithin(width, self.dimensions.wallThickness, self.dimensions.getInnerWidth() + self.dimensions.wallThickness)
-
-    def alignWithin(self, width: float, leftBorder: float, rightBorder: float):
-        emptyWidth = rightBorder - leftBorder - width
-        return leftBorder + emptyWidth / 2
+        return alignWithin(width, self.dimensions.wallThickness, self.dimensions.getInnerWidth() + self.dimensions.wallThickness)
 
     def alignHeight(self, height):
         return self.dimensions.floorHeight + self.dimensions.getMaxObjectsHeight() - height
