@@ -40,16 +40,16 @@ class Colour(IntEnum):
         return self.name.lower()
 
 class MultiColourFuser:
-    def __init__(self, colour: Colour = None, solid: Part.Solid = None):
+    def __init__(self, colour: Colour = None, element = None):
         self.fuserByColour = {}
-        if colour is not None and solid is not None:
-            self.fuse(colour, solid)
+        if colour is not None and element is not None:
+            self.fuse(colour, element)
 
-    def fuse(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
+    def fuse(self, colour: Colour, element) -> 'MultiColourFuser':
         if colour not in self.fuserByColour:
-            self.fuserByColour[colour] = Fuser(solid)
+            self.fuserByColour[colour] = Fuser(element)
         else:
-            self.fuserByColour[colour].fuse(solid)
+            self.fuserByColour[colour].fuse(element)
 
         return self
 
@@ -77,9 +77,10 @@ class MultiColourFuser:
 
         return self
 
-    def cut(self, solid: Part.Solid) -> 'MultiColourFuser':
-        for fuser in self.fuserByColour.values():
-            fuser.cut(solid)
+    def cut(self, *args) -> 'MultiColourFuser':
+        for arg in args:
+            for fuser in self.fuserByColour.values():
+                fuser.cut(arg)
 
         return self
 

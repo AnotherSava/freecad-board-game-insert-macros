@@ -74,3 +74,15 @@ result = SomeClass(
 - Improves visual separation between parameter names and values
 - Enhances code readability when parameters span multiple lines
 - Maintains consistency across the codebase
+
+## FreeCAD Documentation
+
+This project uses FreeCAD for 3D modeling and CAD operations. The primary documentation source for FreeCAD Python API and scripting is:
+
+**FreeCAD Power Users Hub**: https://wiki.freecad.org/Power_users_hub
+
+This documentation should be referenced for:
+- FreeCAD Python scripting API
+- Part workbench operations (Part.makeBox, Part.makeCylinder, etc.)
+- Vector operations and geometric transformations
+- Best practices for FreeCAD scripting

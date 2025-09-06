@@ -1,16 +1,19 @@
 import FreeCAD
 from FreeCAD import Vector
 
-from Inserts import company, charters, cardbox
+from Inserts import company, charters, cardbox, cubebox
 from Inserts.cardbox import CardBox
 from Inserts.charters import CharterBox
 from Inserts.common.colours import Colour, MultiColourFuser
 from Inserts.common.smartbox import Side
 from Inserts.company import CompanyBox, CylinderObjectSet
+from Inserts.cubebox import CubeBox
 from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.configuration import GridDimensions, HexTileEdges
 from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
+
+nozzleSize = 0.42
 
 gridDimensions = GridDimensions(
     hexWidth=28,
@@ -106,9 +109,6 @@ charterBoxDimensions = charters.Dimensions(
 )
 
 cardBoxDimensions = cardbox.CardBoxDimensions(
-    # length=210,
-    # width=125,
-    # height=30,
     cardLength=64,
     cardWidth=42,
     cardCutSize=21,
@@ -155,6 +155,26 @@ cardBoxDimensions = cardbox.CardBoxDimensions(
     floorHeight=1.2
 )
 
+cubeSize = 8
+cubeBoxHeight = 12.2
+
+cubeBoxDimensions = cubebox.CubeBoxDimensions(
+    wallThickness=1.2,
+    length=cardBoxDimensions.getBoxLength(),
+    width=240 - cardBoxDimensions.getBoxWidth() - companyBoxDimensions.getBoxLength(),
+    lidHeight=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
+    lidHandleHeight=cardBoxDimensions.getBoxHeight() - cubeBoxHeight - 2.4,
+    gapHeight=cubeSize * 2 / 3,
+    holderAngle=15,
+    height=cubeBoxHeight,
+    playerCubeSpaceWidth=19.5,
+    magnetDiameter=3.0,
+    magnetHeightBox=3.0,
+    magnetHeightLid=3.0,
+    cubeSize=8,
+    thinnestWall=nozzleSize * 2
+)
+
 def createYellowTileBoard() -> MultiColourFuser:
     condensedBoard = CondensedBoard(gridDimensions, 8)
     imageFactory = Images(hexImageDimensions)
@@ -198,6 +218,14 @@ def createCharterBox(document: FreeCAD.Document) -> MultiColourFuser:
 def createCardBox() -> MultiColourFuser:
     cardBox = CardBox(cardBoxDimensions)
     return cardBox.createBox()
+
+def createCubedBox() -> MultiColourFuser:
+    cubeBox = CubeBox(cubeBoxDimensions)
+    return cubeBox.createBox()
+
+def createCubedBoxLid() -> MultiColourFuser:
+    cubeBox = CubeBox(cubeBoxDimensions)
+    return cubeBox.createLid()
 
 # ------------------ TESTING STUFF -----------------
 

@@ -48,7 +48,7 @@ class SmartBox(Fusible):
         pencil.arcWithRadius(length / 2 * (1 - preCutCoefficient), -90, -180)
         pencil.arcWithRadius(length / 2 * preCutCoefficient, -90, 90)
         solid = pencil.extrude(height * 2 + self.height)
-        solid.rotate(Vector(), Vector(0, 0, 1), side.value).translate(self.getTranslateVector(side, height))
+        solid.rotate(Vector(), Vector(0, 0, 1), side.value + 180).translate(self.getTranslateVector(side, height))
         self.box = self.box.fuse(solid)
 
     def addLedge(self, side: Side, height: float = None, coefficient: float = 0.15, thickness: float = 1.2):

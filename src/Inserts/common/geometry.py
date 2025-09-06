@@ -7,10 +7,10 @@ from Part import Wire
 
 
 class Side(IntEnum):
-    S = 0
-    E = 90
-    N = 180
-    W = 270
+    S = 180
+    E = 270
+    N = 0
+    W = 90
 
 
 # angle is measured in degrees CCW from axis Y

@@ -23,7 +23,7 @@ def fuseAll(args):
 
     return result
 
-class Fuser:
+class Fuser(Fusible):
     def __init__(self, *args):
         self.result = fuse(*args)
 
@@ -47,3 +47,6 @@ class Fuser:
 
     def getResult(self):
         return self.result
+
+    def getElement(self):
+        return self.getResult()
