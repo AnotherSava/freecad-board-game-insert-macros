@@ -56,14 +56,14 @@ class MultiColourFuser:
     def fuseAll(self, *args: 'MultiColourFuser') -> 'MultiColourFuser':
         for arg in args:
             for (colour, fuser) in arg.fuserByColour.items():
-                self.fuse(colour, fuser.getResult())
+                self.fuse(colour, fuser.solid)
 
         return self
     
     def fuseUnique(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
         uniqueSolid = solid.copy()
         for fuser in self.fuserByColour.values():
-            uniqueSolid = uniqueSolid.cut(fuser.getResult())
+            uniqueSolid = uniqueSolid.cut(fuser.solid)
 
         return self.fuse(colour, uniqueSolid)
 
@@ -91,10 +91,10 @@ class MultiColourFuser:
         return self
 
     def getResult(self):
-        return fuseAll(fuser.getResult() for fuser in self.fuserByColour.values())
+        return fuseAll(fuser.solid for fuser in self.fuserByColour.values())
 
     def show(self, transparency: int = 0):
         for (color, fuser) in self.fuserByColour.items():
-            feature = Part.show(fuser.getResult(), color.getName())
+            feature = Part.show(fuser.solid, color.getName())
             feature.ViewObject.ShapeColor = color.decode()
             feature.ViewObject.Transparency = transparency

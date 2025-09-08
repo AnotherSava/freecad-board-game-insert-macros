@@ -4,6 +4,7 @@ import Part
 from FreeCAD import Vector
 
 from Inserts.common.geometry import createVector
+from Inserts.common.smartsolid import SmartSolid
 from dataclasses import dataclass
 
 
@@ -21,11 +22,16 @@ class CylinderObjectSet:
     def getVisibleHeight(self):
         return self.height - self.getRecessDepth()
 
-class MultiCylinderHolder:
-    def __init__(self, diameter: float, count: int, horizontal: bool = True):
+class MultiCylinderHolder(SmartSolid):
+    def __init__(self, diameter: float, count: int, height: float, horizontal: bool = True):
+        super().__init__(self.getSize(diameter, count, horizontal, True), self.getSize(diameter, count, horizontal, False), height)
         self.diameter = diameter
         self.count = count
         self.horizontal = horizontal
+        self.solid = self.create(height)
+
+    def getSize(self, diameter: float, count: int, horizontal: bool, dimensionIsHorizontal: bool):
+        return diameter * (count if horizontal == dimensionIsHorizontal else 1)
 
     def getTotalWidth(self):
         return self.diameter * (self.count if self.horizontal else 1)
@@ -72,19 +78,20 @@ class MultiCylinderHolder:
         face = Part.Face(wire)
         return face.extrude(Vector(0, 0, height))
 
-class DistinctCylinderHolder:
+class DistinctCylinderHolder(SmartSolid):
     # evenCentres evenly distributes cylinder centers (rather than empty spaces) across the width
-    def __init__(self, diameter: float, count: int, width: float, evenCentres: bool = False):
+    def __init__(self, diameter: float, count: int, length: float, height: float, evenCentres: bool = False):
+        super().__init__(length, diameter, height)
         self.diameter = diameter
         self.count = count
-        self.width = width
         self.evenCentres = evenCentres
+        self.solid = self.create(height)
 
     def getCircleCentre(self, index: int) -> Vector:
         if self.evenCentres:
-            return Vector((self.width / self.count) * (index + 0.5), self.diameter / 2)
+            return Vector((self.length / self.count) * (index + 0.5), self.diameter / 2)
         else:
-            emptySpace = self.width - self.diameter * self.count
+            emptySpace = self.length - self.diameter * self.count
             return Vector(emptySpace / (self.count + 1) * (index + 1) + self.diameter * (index + 0.5), self.diameter / 2)
 
     def create(self, height: float):

@@ -185,7 +185,7 @@ class BaseElementFactory:
         fuser.fuse(outerCity)
         fuser.cut(innerCity)
 
-        return fuser.getResult()
+        return fuser.solid
 
 class Images:
     def __init__(self, dimensions: HexImageDimensions):

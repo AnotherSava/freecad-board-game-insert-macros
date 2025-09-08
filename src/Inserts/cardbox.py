@@ -101,4 +101,4 @@ class CardBox:
         trains.addLedge(Side.S, self.dimensions.trainsHeight)
         fuser.fuse(trains)
 
-        return MultiColourFuser(Colour.BASE, box.box).cut(fuser.getResult())
+        return MultiColourFuser(Colour.BASE, box.box).cut(fuser.solid)

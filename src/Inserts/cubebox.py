@@ -101,4 +101,4 @@ class CubeBox:
         timberCubes.translate(Vector(self.dimensions.playerCubeSpaceWidth * 7 + self.dimensions.wallThickness * 8, 0, self.dimensions.height))
         fuser.fuse(timberCubes)
 
-        return fuser.getResult()
+        return fuser.solid

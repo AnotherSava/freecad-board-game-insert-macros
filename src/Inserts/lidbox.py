@@ -124,7 +124,7 @@ class SlidingLidBox(SmartBox):
         lid = self.createLid()
         lid.translate(Vector(0, 0, self.getLidZ()))
 
-        box = outerBox.cut(innerBox.box).cut(lid)
+        box = outerBox.cut(innerBox.solid).cut(lid)
         if self.dimensions.lid.supportThickness:
             box = box.fuse(self.createLidSupport())
 
@@ -149,7 +149,7 @@ class SlidingLidBox(SmartBox):
         if not self.dimensions.lid.simplify:
             fuser.fuse(self.createTopLid()).fuse(self.createTopLidBevel())
 
-        return self.orientBasedOnLid(fuser.getResult())
+        return self.orientBasedOnLid(fuser.solid)
 
     def createBottomLid(self):
         pencil = Pencil(Vector(-self.dimensions.lid.getLidBackSideLength() / 2 - self.dimensions.lid.getSideWallThickness(), 0, 0))

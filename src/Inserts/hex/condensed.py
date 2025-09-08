@@ -122,7 +122,7 @@ class CondensedWalls:
             wallDivider.translate(Vector(x, y))
             fuser.fuse(wallDivider)
 
-        return fuser.getResult()
+        return fuser.solid
 
     def createMagnetHole(self, vector: Vector, top: bool, magnetHeight: float):
         v1 = Vector(0, -self.dimensions.extruderWidth / cos(radians(30)))
@@ -174,7 +174,7 @@ class CondensedWalls:
                 magnetHoles = magnetHoles.translate(self.getRowShift(i, j * 2 + shift, startDown))
                 fuser.fuse(magnetHoles)
 
-        return fuser.getResult()
+        return fuser.solid
 
 class CondensedBoard:
     def __init__(self, dimensions: GridDimensions, rowCount: int):
@@ -209,7 +209,7 @@ class CondensedBoard:
                 face = Part.Face(wire)
                 fuser.fuse(face)
 
-        return fuser.getResult().extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
+        return fuser.solid.extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
 
     def createMagneticLidLedge(self) -> MultiColourFuser:
         hexesLedge = self.createFloor(self.dimensions.ceilingLedgeThickness, self.dimensions.hexWidth - self.dimensions.ceilingLedgeDelta * 2)

@@ -1,9 +1,8 @@
 import FreeCAD
 from FreeCAD import Vector
 
-from Inserts import company, charters, cardbox, cubebox
+from Inserts import company, cardbox, cubebox, markerbox
 from Inserts.cardbox import CardBox
-from Inserts.charters import CharterBox
 from Inserts.common.colours import Colour, MultiColourFuser
 from Inserts.common.smartbox import Side
 from Inserts.company import CompanyBox, CylinderObjectSet
@@ -12,6 +11,7 @@ from Inserts.hex.condensed import CondensedBoard
 from Inserts.hex.configuration import GridDimensions, HexTileEdges
 from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
+from Inserts.markerbox import MarkerBox
 
 nozzleSize = 0.42
 
@@ -69,43 +69,6 @@ companyBoxDimensions = company.Dimensions(
         CylinderObjectSet(name="markers", diameter=13.4, height=7, count=2),
         CylinderObjectSet(name="stations", diameter=10.95, height=10.3, count=5, separate=True)
     ]
-)
-
-charterBoxDimensions = charters.Dimensions(
-    lid=LidDimensions(
-        lidSlideInDirection=Side.S,
-        lidLength=127,
-        lidWidth=190.8,
-        lidHeight=3.5,
-        lidGap=0,
-        lidWidthWallThickness=1.2,
-        lidLengthWallThickness=0.8,
-        aboveLidHeight=1.2,
-        simplify=True,
-        lidEntranceSizeMultiplier=1.02,
-        aboveLidSlideCoefficient=0.5,
-        supportLengthMultiplier=0.3
-    ),
-
-    wallThickness=6,
-    floorHeight=0.8,
-
-    markers=CylinderObjectSet(diameter=13.4, height=7),
-    stations=CylinderObjectSet(diameter=10.95, height=10.3),
-
-    fontHeight=1.2,
-    numberSpace=7,
-    numberFontSize=4,
-    cylinderDistanceY=4,
-    numberFont="C:/Windows/Fonts/arialbd.ttf",
-    # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
-
-    playerCubeSpaceWidth=9,
-    timberCubeSpaceWidth=55,
-    playerCubeSpaceDistanceSides=8,
-    playerCubeSpaceLength=49,
-    cubeSpaceAngle=30,
-    cubeSpaceDepth=4
 )
 
 cardBoxDimensions = cardbox.CardBoxDimensions(
@@ -175,6 +138,29 @@ cubeBoxDimensions = cubebox.CubeBoxDimensions(
     thinnestWall=nozzleSize * 2
 )
 
+markerBoxHeight = 7.2
+
+markerBoxDimensions = markerbox.Dimensions(
+    length=174,
+    width=92,
+    height=markerBoxHeight,
+    lidHeight = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
+    floorHeight=0.8,
+    padding=2,
+    delta=nozzleSize * 2,
+    magnetDiameter=3,
+    magnetHeightBox=3,
+    magnetHeightLid=3,
+
+    markers=CylinderObjectSet(diameter=13.4, height=7),
+    stations=CylinderObjectSet(diameter=10.95, height=10.3),
+
+    fontHeight=0.4,
+    numberFontSize=4,
+    numberFont="C:/Windows/Fonts/arialbd.ttf",
+    # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
+)
+
 def createYellowTileBoard() -> MultiColourFuser:
     condensedBoard = CondensedBoard(gridDimensions, 8)
     imageFactory = Images(hexImageDimensions)
@@ -211,9 +197,9 @@ def createCompanyBox() -> MultiColourFuser:
     companyBox = CompanyBox(companyBoxDimensions)
     return companyBox.createBox()
 
-def createCharterBox(document: FreeCAD.Document) -> MultiColourFuser:
-    charterBox = CharterBox(charterBoxDimensions, document)
-    return charterBox.createBox()
+def createMarkerBox(document: FreeCAD.Document) -> MultiColourFuser:
+    markerBox = MarkerBox(markerBoxDimensions, document)
+    return markerBox.createBox()
 
 def createCardBox() -> MultiColourFuser:
     cardBox = CardBox(cardBoxDimensions)

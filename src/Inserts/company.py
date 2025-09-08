@@ -43,8 +43,8 @@ class CompanyBox:
         fuser = Fuser()
         for setIndex, objectSet in enumerate(self.dimensions.cylinderObjectSets):
             if objectSet.separate:
-                multiCylinderHolder = MultiCylinderHolder(objectSet.diameter, objectSet.count)
-                recess = multiCylinderHolder.create(objectSet.height)
+                multiCylinderHolder = MultiCylinderHolder(objectSet.diameter, objectSet.count, objectSet.height)
+                recess = multiCylinderHolder.solid
 
                 emptyLength = self.dimensions.getInnerLength() - multiCylinderHolder.getTotalWidth()
 
@@ -60,4 +60,4 @@ class CompanyBox:
 
             shiftY += objectSet.diameter + widthInterval
 
-        return fuser.getResult()
+        return fuser.solid
