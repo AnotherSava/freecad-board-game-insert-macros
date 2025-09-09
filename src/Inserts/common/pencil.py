@@ -85,6 +85,11 @@ class Pencil:
         solid.rotate(self.start, Vector(1, 0, 0), 90).rotate(self.start, Vector(0, 0, 1), 90)
         return solid
 
+    def extrudeY(self, height: float):
+        solid = self.extrude(-height)
+        solid.rotate(self.start, Vector(1, 0, 0), 90)
+        return solid
+
     def createWire(self):
         curves = self.curves
         if self.location != self.start:

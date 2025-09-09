@@ -1,10 +1,13 @@
 import FreeCAD
+import Part
 from FreeCAD import Vector
 
 from Inserts import company, cardbox, cubebox, markerbox
 from Inserts.cardbox import CardBox
+from Inserts.common import magnets
 from Inserts.common.colours import Colour, MultiColourFuser
-from Inserts.common.smartbox import Side
+from Inserts.common.magnets import MagnetDetails
+from Inserts.common.smartbox import Side, SmartBox
 from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.cubebox import CubeBox
 from Inserts.hex.condensed import CondensedBoard
@@ -145,12 +148,18 @@ markerBoxDimensions = markerbox.Dimensions(
     width=92,
     height=markerBoxHeight,
     lidHeight = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
+    ligHeightDelta = 1.6,
+    lidRecessWallThickness = 0.4,
     floorHeight=0.8,
     padding=2,
     delta=nozzleSize * 2,
-    magnetDiameter=3,
+    magnetDiameter=3.05,
     magnetHeightBox=3,
+    magnetCountBox=2,
     magnetHeightLid=3,
+    magnetCountLid=2,
+    wallThickness=1.2,
+    handleRadius=2,
 
     markers=CylinderObjectSet(diameter=13.4, height=7),
     stations=CylinderObjectSet(diameter=10.95, height=10.3),
@@ -201,6 +210,10 @@ def createMarkerBox(document: FreeCAD.Document) -> MultiColourFuser:
     markerBox = MarkerBox(markerBoxDimensions, document)
     return markerBox.createBox()
 
+def createMarkerBoxLid(document: FreeCAD.Document) -> MultiColourFuser:
+    markerBox = MarkerBox(markerBoxDimensions, document)
+    return markerBox.createLid()
+
 def createCardBox() -> MultiColourFuser:
     cardBox = CardBox(cardBoxDimensions)
     return cardBox.createBox()
@@ -214,6 +227,16 @@ def createCubedBoxLid() -> MultiColourFuser:
     return cubeBox.createLid()
 
 # ------------------ TESTING STUFF -----------------
+
+def createTest():
+    box = SmartBox(10, 10, 7)
+    box = Part.makeBox(1, 1, 1)
+    bases, holes = magnets.createMagnetHolders(3.05, 3, True, 7, 1, [MagnetDetails(Vector(0, 0, 0), 2, 45)])
+    base = magnets.createMagnetBase(3.05, 3, True, 7, 1, MagnetDetails(Vector(0, 0, 0), 2, 180))
+
+    return MultiColourFuser(Colour.BASE, bases.cut(holes))
+    # return MultiColourFuser(Colour.BASE, base)
+    # return MultiColourFuser(Colour.BASE, box)
 
 def createImage():
     imageFactory = Images(hexImageDimensions)

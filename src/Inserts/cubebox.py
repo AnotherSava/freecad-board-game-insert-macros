@@ -7,6 +7,7 @@ from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import Side
 from Inserts.common.pencil import Pencil
 from Inserts.common.magnets import createMagnetHolders, getWidestRadius, MagnetDetails, createMagnetHolders
+from Inserts.common.primitives import createTaperedBox
 from Inserts.common.smartbox import SmartBox
 from dataclasses import dataclass
 
@@ -47,10 +48,10 @@ class CubeBox:
         lid = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.lidHeight)
         magnetBases, magnetHoles = createMagnetHolders(self.dimensions.magnetDiameter, self.dimensions.magnetHeightLid, False, self.dimensions.lidHeight, self.dimensions.thinnestWall, self.createMagnetLocations(False))
 
-        recess = self.createTaperedBox(self.dimensions.length / 6, self.dimensions.width / 2, self.dimensions.lidHandleHeight, self.dimensions.length / 4, self.dimensions.width * 2 / 3)
+        recess = createTaperedBox(self.dimensions.length / 6, self.dimensions.width / 2, self.dimensions.lidHandleHeight, self.dimensions.length / 4, self.dimensions.width * 2 / 3)
         recess.translate(Vector(self.dimensions.length / 2, self.dimensions.width / 2, self.dimensions.lidHeight - self.dimensions.lidHandleHeight))
 
-        handle = self.createTaperedBox(self.dimensions.wallThickness, self.dimensions.width, self.dimensions.lidHeight, self.dimensions.wallThickness * 3, self.dimensions.width)
+        handle = createTaperedBox(self.dimensions.wallThickness, self.dimensions.width, self.dimensions.lidHeight, self.dimensions.wallThickness * 3, self.dimensions.width)
         handle.translate(Vector((self.dimensions.length - self.dimensions.wallThickness) / 2, self.dimensions.width / 2, 0))
 
         fuser = MultiColourFuser(Colour.WALLED_MESH, lid)
@@ -59,12 +60,6 @@ class CubeBox:
         fuser.fuse(Colour.BASE, handle)
 
         return fuser.translate(Vector(0, 0, 40))
-
-    def createTaperedBox(self, bottomLength: float, bottomWidth: float, height: float, topLength: float, topWidth: float):
-        bottomWire = Pencil(Vector(-bottomLength / 2, -bottomWidth / 2)).up(bottomWidth).right(bottomLength).down(bottomWidth).createWire()
-        topWire = Pencil(Vector(-topLength / 2, -topWidth / 2, height)).up(topWidth).right(topLength).down(topWidth).createWire()
-
-        return Part.makeLoft([bottomWire, topWire], True)
 
     def createCubeSpace(self, width: float) -> Part.Solid:
         pencil = Pencil()

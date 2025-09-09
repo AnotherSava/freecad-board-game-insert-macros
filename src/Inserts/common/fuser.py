@@ -42,5 +42,6 @@ class Fuser:
         return self
 
     def translate(self, vector: Vector) -> 'Fuser':
-        self.solid.translate(vector)
+        if self.solid:
+            self.solid.translate(vector)
         return self
