@@ -45,3 +45,8 @@ class Fuser:
         if self.solid:
             self.solid.translate(vector)
         return self
+
+    def rotate(self, centre: Vector, axis: Vector, angle: float) -> 'Fuser':
+        if self.solid:
+            self.solid.rotate(centre, axis, angle)
+        return self

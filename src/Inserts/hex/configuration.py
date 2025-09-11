@@ -21,6 +21,14 @@ class HexTileEdges(IntEnum):
     def getNextCounterClockWise(self, count: int = 1) -> 'HexTileEdges':
         return HexTileEdges((self.value + 60 * count) % 360)
 
+class HexTileManifestEdges(IntEnum):
+    NW = 120
+    SW = 180
+    S = 240
+    SE = 300
+    NE = 0
+    N = 60
+
 class HexTileVertices(IntEnum):
     N = 0
     NW = 60

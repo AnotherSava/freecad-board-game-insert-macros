@@ -22,8 +22,9 @@ class SmartSolid:
     def translateVector(self, vector: Vector):
         self.baseVector(self.getVector() + vector)
 
-    def translate(self, x: float, y: float, z: float):
+    def translate(self, x: float, y: float = 0, z: float = 0) -> 'SmartSolid':
         self.base(self.x + x, self.y + y, self.z + z)
+        return self
 
     def baseVector(self, vector: Vector):
         self.base(vector.x, vector.y, vector.z)

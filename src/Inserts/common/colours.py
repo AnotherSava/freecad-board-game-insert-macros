@@ -90,6 +90,12 @@ class MultiColourFuser:
 
         return self
 
+    def rotate(self, centre: Vector, axis: Vector, angle: float) -> 'MultiColourFuser':
+        for fuser in self.fuserByColour.values():
+            fuser.rotate(centre, axis, angle)
+
+        return self
+
     def getResult(self):
         return fuseAll(fuser.solid for fuser in self.fuserByColour.values())
 

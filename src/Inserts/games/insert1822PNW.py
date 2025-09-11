@@ -1,3 +1,5 @@
+import math
+
 import FreeCAD
 import Part
 from FreeCAD import Vector
@@ -23,7 +25,7 @@ gridDimensions = GridDimensions(
     pinWidth=3.5,
     pinLength=6,
     pinRadius=1,
-    pinHeight=8.5,
+    pinHeight=10,
     floorThickness=1.6,
     ceilingThickness=0.8,
     ceilingLedgeThickness=1.2,
@@ -33,7 +35,7 @@ gridDimensions = GridDimensions(
     magnetHeightFloor=3,
     magnetHeightCeiling=2,
     extruderWidth=0.42,
-    maxRowsPerMagnet=4
+    maxRowsPerMagnet=2
 )
 
 hexImageDimensions = HexImageDimensions(
@@ -171,31 +173,22 @@ markerBoxDimensions = markerbox.Dimensions(
 )
 
 def createYellowTileBoard() -> MultiColourFuser:
-    condensedBoard = CondensedBoard(gridDimensions, 8)
+    return createTileBoard(58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)
+
+def createGreenTileBoard() -> MultiColourFuser:
+    return createTileBoard(144, 143, 142, 141, 15, 15, 619, 619, 80, 14, 81, 81, 82, 82, 83, 83)
+
+def createTileBoard(*tileNumbers) -> MultiColourFuser:
+    assert len(tileNumbers) % 2 == 0
+
+    condensedBoard = CondensedBoard(gridDimensions, int(len(tileNumbers) / 2))
     imageFactory = Images(hexImageDimensions)
     boardFuser = condensedBoard.createBoard().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
 
     multiFuser = MultiColourFuser()
 
-    multiFuser.fuseAll(imageFactory.createGentleTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(0, 0)))
-    multiFuser.fuseAll(imageFactory.createSharpTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(0, 1)))
-
-    for column in range(2):
-        multiFuser.fuseAll(imageFactory.createStraightTown(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(1, column)))
-
-    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.E).translate(gridDimensions.getHexCentre(2, 0)))
-    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.SE).translate(gridDimensions.getHexCentre(2, 1)))
-
-    multiFuser.fuseAll(imageFactory.createSharp(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(3, 0)))
-    multiFuser.fuseAll(imageFactory.createCity(Colour.YELLOW, HexTileEdges.SW, HexTileEdges.NE).translate(gridDimensions.getHexCentre(3, 1)))
-
-    for row in [4, 5]:
-        for column in range(2):
-            multiFuser.fuseAll(imageFactory.createGentle(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(row, column)))
-
-    for row in [6, 7]:
-        for column in range(2):
-            multiFuser.fuseAll(imageFactory.createStraight(Colour.YELLOW, HexTileEdges.SW).translate(gridDimensions.getHexCentre(row, column)))
+    for index, number in enumerate(tileNumbers):
+        multiFuser.fuseAll(imageFactory.createTile(number).translate(gridDimensions.getHexCentre(math.floor(index / 2), index % 2)))
 
     multiFuser.common(boardFuser.getResult())
     boardFuser.cut(multiFuser.getResult())
@@ -240,8 +233,7 @@ def createTest():
 
 def createImage():
     imageFactory = Images(hexImageDimensions)
-    sample = imageFactory.createGentleTown(Colour.YELLOW,HexTileEdges.NE)
-    sample.show()
+    return imageFactory.createTile(619).rotate(Vector(), Vector(0, 0, 1), 30)
 
 def createBoard():
     condensedBoard = CondensedBoard(gridDimensions, 8)
