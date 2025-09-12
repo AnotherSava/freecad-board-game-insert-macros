@@ -86,7 +86,7 @@ class MarkerBox:
         magnetLocations = self.createMagnetLocations(self.dimensions.magnetCountBox, box.zTo)
         magnetHoles = createMagnetHoles(self.dimensions.magnetDiameter, self.dimensions.magnetHeightBox, True, magnetLocations)
         fuser = MultiColourFuser(Colour.WHITE, labels)
-        fuser.fuse(Colour.BLACK, box).cut(markersAndStationsRecess, magnetHoles)
+        fuser.fuse(Colour.BASE, box).cut(markersAndStationsRecess, magnetHoles)
 
         # Part.show(markersAndStationsRecess)
 

@@ -34,7 +34,7 @@ class CompanyBox:
 
         boxWithRecesses = hollowBox.cut(fusedRecesses)
 
-        return MultiColourFuser(Colour.BLACK, boxWithRecesses)
+        return MultiColourFuser(Colour.BASE, boxWithRecesses)
 
     def createRecess(self):
         emptyWidth = self.dimensions.getBoxWidth() - sum(objectSet.diameter for objectSet in self.dimensions.cylinderObjectSets)

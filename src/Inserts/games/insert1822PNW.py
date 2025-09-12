@@ -12,13 +12,14 @@ from Inserts.common.magnets import MagnetDetails
 from Inserts.common.smartbox import Side, SmartBox
 from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.cubebox import CubeBox
-from Inserts.hex.condensed import CondensedBoard
-from Inserts.hex.configuration import GridDimensions, HexTileEdges
+from Inserts.hex.condensed import CondensedBoard, GridDimensions
 from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
 from Inserts.markerbox import MarkerBox
 
 nozzleSize = 0.42
+magnet3Height = 2.8
+magnet2Height = 1.8
 
 gridDimensions = GridDimensions(
     hexWidth=28,
@@ -28,14 +29,14 @@ gridDimensions = GridDimensions(
     pinHeight=10,
     floorThickness=1.6,
     ceilingThickness=0.8,
-    ceilingLedgeThickness=1.2,
-    ceilingLedgeDelta=0.4,
     adjacentDistance=1.2,
     magnetDiameter=3,
-    magnetHeightFloor=3,
-    magnetHeightCeiling=2,
-    extruderWidth=0.42,
-    maxRowsPerMagnet=2
+    magnetHeightFloor=magnet3Height,
+    magnetHeightCeiling=magnet3Height,
+    thinnestWall=nozzleSize * 2,
+    maxRowsPerMagnet=2,
+    lidHoleAngle=45,
+    lidHoleMultiplier=0.8
 )
 
 hexImageDimensions = HexImageDimensions(
@@ -137,8 +138,8 @@ cubeBoxDimensions = cubebox.CubeBoxDimensions(
     height=cubeBoxHeight,
     playerCubeSpaceWidth=19.5,
     magnetDiameter=3.0,
-    magnetHeightBox=3.0,
-    magnetHeightLid=3.0,
+    magnetHeightBox=magnet3Height,
+    magnetHeightLid=magnet3Height,
     cubeSize=8,
     thinnestWall=nozzleSize * 2
 )
@@ -156,9 +157,9 @@ markerBoxDimensions = markerbox.Dimensions(
     padding=2,
     delta=nozzleSize * 2,
     magnetDiameter=3.05,
-    magnetHeightBox=3,
+    magnetHeightBox=magnet3Height,
     magnetCountBox=2,
-    magnetHeightLid=3,
+    magnetHeightLid=magnet3Height,
     magnetCountLid=2,
     wallThickness=1.2,
     handleRadius=2,
@@ -219,6 +220,10 @@ def createCubedBoxLid() -> MultiColourFuser:
     cubeBox = CubeBox(cubeBoxDimensions)
     return cubeBox.createLid()
 
+def createTileBoardLid() -> MultiColourFuser:
+    condensedBoard = CondensedBoard(gridDimensions, 8)
+    return condensedBoard.createLid()
+
 # ------------------ TESTING STUFF -----------------
 
 def createTest():
@@ -234,9 +239,4 @@ def createTest():
 def createImage():
     imageFactory = Images(hexImageDimensions)
     return imageFactory.createTile(619).rotate(Vector(), Vector(0, 0, 1), 30)
-
-def createBoard():
-    condensedBoard = CondensedBoard(gridDimensions, 8)
-    # condensedBoard.createBoard().show()
-    condensedBoard.createLid()
 

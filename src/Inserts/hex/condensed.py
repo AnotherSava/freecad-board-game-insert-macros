@@ -7,10 +7,49 @@ from Part import Wire
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import shiftVector, createWire, invertX, extrudeWire
-from Inserts.common.hexes import createRoundedHexTile
+from Inserts.common.hexes import createRoundedHexTileWire, createRoundedHexTile, createCustomRoundedHexTile
 from Inserts.common.pencil import Pencil
-from Inserts.hex.configuration import GridDimensions, HexTileVertices, HexTileEdges
+from Inserts.hex.configuration import HexTileVertices, HexTileEdges
+from dataclasses import dataclass
 
+
+@dataclass
+class GridDimensions:
+    hexWidth: float
+    pinWidth: float
+    pinLength: float
+    pinRadius: float
+    pinHeight: float
+    floorThickness: float
+    ceilingThickness: float
+    adjacentDistance: float # distance between horizontally adjacent tiles
+    magnetDiameter: float
+    magnetHeightFloor: float
+    magnetHeightCeiling: float
+    thinnestWall: float
+    maxRowsPerMagnet: int
+    lidHoleAngle: float
+    lidHoleMultiplier: float
+
+    def getHexSide(self):
+        return self.hexWidth * tan(radians(30))
+
+    def getDistanceFromHexCentreToOuterPinAngle(self):
+        return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexWidth)
+
+    def getDistanceFromHexCentreToHexCorner(self, hexWidth: float):
+        return hexWidth / 2 / cos(radians(30))
+
+    def getCondensedDistanceY(self):
+        return (self.hexWidth + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
+
+    def getCondensedDistanceX(self):
+        return self.hexWidth + self.adjacentDistance
+
+    def getHexCentre(self, row: int, column: int) -> Vector:
+        sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
+        evenRowsShiftX = (self.hexWidth + self.adjacentDistance) / 2
+        return Vector(evenRowsShiftX * (row % 2) + sameRowHexDistanceX * column, row * self.getCondensedDistanceY() + self.getDistanceFromHexCentreToOuterPinAngle())
 
 class CondensedWalls:
     def __init__(self, dimensions: GridDimensions, rowCount: int):
@@ -125,26 +164,25 @@ class CondensedWalls:
         return fuser.solid
 
     def createMagnetHole(self, vector: Vector, top: bool, magnetHeight: float):
-        v1 = Vector(0, -self.dimensions.extruderWidth / cos(radians(30)))
-        v2 = shiftVector(v1, self.dimensions.magnetDiameter / 2 * (1 + tan(radians(30))), -120)
-        v3 = shiftVector(v2, self.dimensions.pinWidth - self.dimensions.extruderWidth, 150)
-        v4 = invertX(v3)
-        v5 = invertX(v2)
+        longerSideDelta = (self.dimensions.magnetDiameter / 2) * (1 + tan(radians(30)))
+        holeWidth = self.dimensions.pinWidth - self.dimensions.thinnestWall
+        shorterSideDelta = longerSideDelta - holeWidth * tan(radians(30))
 
-        wire = createWire([v1, v2, v3, v4, v5])
-        if not top:
-            wire = wire.rotate(Vector(0, 0, 0), Vector(0, 0, 1), 180)
-        wire = wire.translate(vector)
-        face = Part.Face(wire)
+        pencil = Pencil()
+        pencil.draw(longerSideDelta, 60)
+        pencil.draw(holeWidth, -30)
+        pencil.draw(shorterSideDelta, -120)
+        pencil.draw(shorterSideDelta, -60)
+        pencil.draw(holeWidth, -150)
+        hole = pencil.extrude(magnetHeight)
 
-        return face.extrude(Vector(0, 0, magnetHeight))
+        hole.translate(Vector(0, self.dimensions.thinnestWall / cos(radians(30))))
 
-    def createMagnetCylindricalHole(self, vector: Vector, top: bool):
-        # equal distance from the outside
-        magnetShift = self.dimensions.pinWidth / cos(radians(30)) / (cos(radians(30)) + 1)
-        location = shiftVector(vector, magnetShift, 180 if top else 0)
+        if top:
+            hole.rotate(Vector(0, 0, 0), Vector(0, 0, 1), 180)
+        hole.translate(vector)
 
-        return Part.makeCylinder(self.dimensions.magnetDiameter / 2, self.dimensions.magnetHeightFloor, location)
+        return hole
 
     def roundTowardsCentre(self, number: float, centre: float) -> int:
         return ceil(number) if number < centre else floor(number)
@@ -198,51 +236,66 @@ class CondensedBoard:
 
         return []
 
-    def createFloor(self, floorThickness: float = None, hexWidth: float = None):
+    def createFloor(self, floorThickness: float, straightEdges = False) -> Fuser:
         fuser = Fuser()
         for i in range(self.rowCount):
             for j in range(2):
-                shallowEdges = [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
+                shallowEdges = [] if straightEdges else [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
                 roundedVertices = self.chooseRoundedVertices(j, i, self.rowCount)
-                wire = createRoundedHexTile(hexWidth or self.dimensions.hexWidth, self.dimensions.pinRadius, roundedVertices, shallowEdges)
-                wire.translate(self.dimensions.getHexCentre(i, j))
-                face = Part.Face(wire)
-                fuser.fuse(face)
+                fuser.fuse(createRoundedHexTile(self.dimensions.hexWidth, floorThickness, self.dimensions.getHexCentre(i, j), self.dimensions.pinRadius, roundedVertices, shallowEdges))
 
-        return fuser.solid.extrude(Vector(0, 0, floorThickness or self.dimensions.floorThickness))
+        return fuser
 
-    def createMagneticLidLedge(self) -> MultiColourFuser:
-        hexesLedge = self.createFloor(self.dimensions.ceilingLedgeThickness, self.dimensions.hexWidth - self.dimensions.ceilingLedgeDelta * 2)
-        hexesLedge.translate(Vector(0, 0, -self.dimensions.ceilingLedgeThickness - 0.05))
-        return MultiColourFuser(Colour.MESH, hexesLedge)
-
-    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, colourBase: Colour, colourMagnets: Colour) -> MultiColourFuser:
+    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, colourWalls: Colour) -> MultiColourFuser:
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
         fuser = MultiColourFuser()
 
-        fuser.fuseAll(wallFactory.createWalls(height, colourBase, colourMagnets))
-        fuser.fuse(colourBase, wallFactory.createDividerWalls(height))
+        fuser.fuseAll(wallFactory.createWalls(height, colourWalls, Colour.BASE))
+        fuser.fuse(colourWalls, wallFactory.createDividerWalls(height))
 
-        if magnetHeight is not None:
-            magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
-            if magnetsTop:
-                magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
-            fuser.cut(magnetHoles)
+        magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
+        if magnetsTop:
+            magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
+        fuser.cut(magnetHoles)
 
         return fuser
 
     def createBoard(self) -> MultiColourFuser:
         fuser = MultiColourFuser()
-        fuser.fuse(Colour.BLACK, self.createFloor())
-        fuser.fuseAll(self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor, Colour.BLACK, Colour.BLACK))
+        fuser.fuse(Colour.BASE, self.createFloor(self.dimensions.floorThickness))
+        fuser.fuseAll(self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor, Colour.BASE))
         return fuser
 
-    def createLid(self):
+    def createSingleHandleHexRecess(self, orientation: float) -> Fuser:
+        height = self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling
+        centre = (self.dimensions.getHexCentre(0, 0) + self.dimensions.getHexCentre(self.rowCount - 1, 1)) / 2
+        tileCentre = self.dimensions.getHexCentre(int(self.rowCount / 2), 1)
+
+        shallowEdges = []
+        roundedVertices = list(HexTileVertices)
+
+        shift = height * cos(radians(self.dimensions.lidHoleAngle))
+        extrusionVector = -Vector(shift * cos(radians(60)), shift * sin(radians(60)), height)
+        fuser = Fuser(createCustomRoundedHexTile(self.dimensions.hexWidth * self.dimensions.lidHoleMultiplier, extrusionVector, tileCentre, self.dimensions.pinRadius, roundedVertices, shallowEdges))
+
+        return fuser.rotate(centre, Vector(0, 0, 1), orientation).translate(Vector(0, 0, height))
+
+    def createHandleRecess(self) -> Part.Solid:
+        assert self.rowCount % 2 == 0
+
+        fuser = Fuser()
+        for orientation in [0, 180]:
+            fuser.fuse(self.createSingleHandleHexRecess(orientation))
+
+        return fuser.solid
+
+    def createLid(self) -> MultiColourFuser:
         height = self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling
 
-        fuser = MultiColourFuser(Colour.WALLED_MESH, self.createFloor(height))
+        fuser = MultiColourFuser(Colour.WALLED_MESH, self.createFloor(height, True))
 
-        fuser.fuseAll(self.createWalls(height, False, self.dimensions.magnetHeightCeiling, Colour.WALLED_MESH, Colour.BLACK))
-        fuser.fuseAll(self.createMagneticLidLedge())
+        fuser.fuseAll(self.createWalls(height, False, self.dimensions.magnetHeightCeiling, Colour.WALLED_MESH))
 
-        fuser.show(40)
+        fuser.cut(self.createHandleRecess())
+
+        return fuser
