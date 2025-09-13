@@ -59,7 +59,15 @@ class MultiColourFuser:
                 self.fuse(colour, fuser.solid)
 
         return self
-    
+
+    def fuseColour(self, colour: Colour, *args: 'MultiColourFuser') -> 'MultiColourFuser':
+        for arg in args:
+            elem = arg.fuserByColour[colour]
+            if elem:
+                self.fuse(colour, elem.solid)
+
+        return self
+
     def fuseUnique(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
         uniqueSolid = solid.copy()
         for fuser in self.fuserByColour.values():

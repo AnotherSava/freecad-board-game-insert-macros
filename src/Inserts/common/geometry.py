@@ -29,7 +29,7 @@ def invertX(vector: Vector) -> Vector:
 def shiftVectorTwice(vector: Vector, length1: float, angle1: float, length2: float, angle2: float) -> Vector:
     return shiftVector(shiftVector(vector, length1, angle1), length2, angle2)
 
-def createWire(points: list[Vector]) -> Wire:
+def createWire(*points) -> Wire:
     edges = []
     for i in range(len(points)):
         edge = LineSegment(points[i], points[(i + 1) % len(points)])

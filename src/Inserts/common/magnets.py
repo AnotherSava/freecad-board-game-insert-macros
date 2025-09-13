@@ -9,7 +9,7 @@ from Inserts.common.pencil import Pencil
 from dataclasses import dataclass
 from typing import Iterable
 
-wideningCoefficient = 1.05
+wideningCoefficient = 1.1
 wideningPartHeightCoefficient = 1 / 3
 
 @dataclass
@@ -17,7 +17,7 @@ class MagnetDetails:
     centre: Vector
     count: int = 1
     cornerAngle: int = None # base will have a corner at a specific direction (CCW from Y axis) rather than be round
-    rampDirection: Side = None
+    rampDirection: int = None
     rampCentreAdjustment: float = None # [-1..1] If ramp is facing up, -1 = leftmost point of the base diameter, 1 = rightmost point
     rampLengthMultiplier: float = None # times base radius
     wallThickness: float = None # thickness of the wall ramp is attached to
@@ -60,7 +60,7 @@ def createMagnetBase(magnetDiameter: float, magnetHeight: float, magnetOnTop: bo
 
     if details.rampDirection is not None:
         ramp = createHalfCurve(baseRadius, details, wideBaseRadius, baseHeight)
-        ramp.rotate(Vector(0, 0), Vector(0, 0, 1), details.rampDirection.value)
+        ramp.rotate(Vector(0, 0), Vector(0, 0, 1), details.rampDirection)
         fuser.fuse(ramp)
 
     fuser.translate(details.centre)

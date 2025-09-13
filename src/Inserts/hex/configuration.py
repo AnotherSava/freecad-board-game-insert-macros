@@ -21,6 +21,12 @@ class HexTileEdges(IntEnum):
     def getNextCounterClockWise(self, count: int = 1) -> 'HexTileEdges':
         return HexTileEdges((self.value + 60 * count) % 360)
 
+    def getNextClockWise(self, count: int = 1) -> 'HexTileEdges':
+        return HexTileEdges((self.value - 60 * count) % 360)
+
+    def getVertices(self):
+        return HexTileVertices((self.value + 240) % 360), HexTileVertices((self.value + 300) % 360)
+
 class HexTileManifestEdges(IntEnum):
     NW = 120
     SW = 180
@@ -44,6 +50,10 @@ class HexTileVertices(IntEnum):
     # Unit vector for hexagon edge CCW from this vertex (normalized directions)
     def getEdgeCounterClockWise(self) -> HexTileEdges:
         return HexTileEdges((self.value + 120) % 360)
+
+    # Unit vector for hexagon edge CW from this vertex (normalized directions)
+    def getEdgeClockWise(self) -> HexTileEdges:
+        return HexTileEdges((self.value + 60) % 360)
 
     # Vertex of the hexagon with a specific width
     def getVector(self, hexWidth: float) -> Vector:

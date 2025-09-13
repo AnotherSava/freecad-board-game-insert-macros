@@ -221,7 +221,7 @@ class Images:
         self.outlineFactory = BaseElementFactory(dimensions.createOutline())
 
     def createHex(self, height: float = None) -> Part.Solid:
-        wire = createWire([self.dimensions.hex.getVector(x) for x in HexTileVertices.iterate()])
+        wire = createWire(*(self.dimensions.hex.getVector(x) for x in HexTileVertices.iterate()))
         face = Part.Face(wire)
         solid = face.extrude(Vector(0, 0, height or self.dimensions.imageHeight))
         return solid

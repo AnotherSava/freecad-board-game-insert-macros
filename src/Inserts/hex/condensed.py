@@ -1,13 +1,17 @@
+import math
 from math import tan, cos, sin, radians, ceil, floor
 
 import Part
 from FreeCAD import Vector
 from Part import Wire
 
+from Inserts.common import magnets
 from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser
-from Inserts.common.geometry import shiftVector, createWire, invertX, extrudeWire
-from Inserts.common.hexes import createRoundedHexTileWire, createRoundedHexTile, createCustomRoundedHexTile
+from Inserts.common.fuser import Fuser, fuse
+from Inserts.common.geometry import shiftVector, createWire, extrudeWire
+from Inserts.common.hexagon import Hexagon, HexagonConfiguration
+from Inserts.common.hexes import createRoundedHexTile
+from Inserts.common.magnets import MagnetDetails, getWidestRadius
 from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 from dataclasses import dataclass
@@ -30,6 +34,8 @@ class GridDimensions:
     maxRowsPerMagnet: int
     lidHoleAngle: float
     lidHoleMultiplier: float
+    lidInfillThickness: float
+    lidExternalWallThickness: float
 
     def getHexSide(self):
         return self.hexWidth * tan(radians(30))
@@ -50,6 +56,18 @@ class GridDimensions:
         sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
         evenRowsShiftX = (self.hexWidth + self.adjacentDistance) / 2
         return Vector(evenRowsShiftX * (row % 2) + sameRowHexDistanceX * column, row * self.getCondensedDistanceY() + self.getDistanceFromHexCentreToOuterPinAngle())
+
+    def getLidHeight(self) -> float:
+        return self.ceilingThickness + self.magnetHeightCeiling
+
+    def getMagnetHoleLocation(self, row: int, column: int) -> Vector:
+        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToOuterPinAngle() - getWidestRadius(self.magnetDiameter, self.thinnestWall) / cos(radians(30)))
+        if (row + column) % 2 == 0: # magnet is on the bottom of the hex
+            hexCentre = self.getHexCentre(row, math.floor(column / 2))
+            return hexCentre - hexCentreToHoleUp
+        else: # magnet is on the top of the hex
+            hexCentre = self.getHexCentre(row - 1, math.floor(column / 2))
+            return hexCentre + hexCentreToHoleUp
 
 class CondensedWalls:
     def __init__(self, dimensions: GridDimensions, rowCount: int):
@@ -105,7 +123,7 @@ class CondensedWalls:
 
         points = topWall + bottomWall
 
-        return createWire(points)
+        return createWire(*points)
 
     def getRowShift(self, rowIndex: int, columnIndex: int, down: bool) -> Vector:
         distanceYa = self.dimensions.getDistanceFromHexCentreToHexCorner(self.dimensions.hexWidth + self.dimensions.pinWidth)
@@ -219,6 +237,22 @@ class CondensedBoard:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
+    def createMagnetHoles(self, magnetHeight: float, magnetOnTop: bool, baseHeight: float) -> (Part.Solid, Part.Solid):
+        wallFactory = CondensedWalls(self.dimensions, self.rowCount)
+
+        magnetDetails = []
+
+        for i in wallFactory.getExtraMagnetRowIndices():
+            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 0)))
+            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 3)))
+
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 0)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 2)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 1)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 3)))
+
+        return magnets.createMagnetHolders(self.dimensions.magnetDiameter, magnetHeight, magnetOnTop, baseHeight, self.dimensions.thinnestWall, magnetDetails)
+
     def chooseRoundedVertices(self, column: int, row: int, rowCount: int):
         if column == 0:
             if row % 2 == 0:
@@ -246,7 +280,7 @@ class CondensedBoard:
 
         return fuser
 
-    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, colourWalls: Colour) -> MultiColourFuser:
+    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, colourWalls: Colour) -> (MultiColourFuser, Part.Solid):
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
         fuser = MultiColourFuser()
 
@@ -258,7 +292,7 @@ class CondensedBoard:
             magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
         fuser.cut(magnetHoles)
 
-        return fuser
+        return fuser, magnetHoles
 
     def createBoard(self) -> MultiColourFuser:
         fuser = MultiColourFuser()
@@ -266,36 +300,107 @@ class CondensedBoard:
         fuser.fuseAll(self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor, Colour.BASE))
         return fuser
 
-    def createSingleHandleHexRecess(self, orientation: float) -> Fuser:
-        height = self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling
-        centre = (self.dimensions.getHexCentre(0, 0) + self.dimensions.getHexCentre(self.rowCount - 1, 1)) / 2
-        tileCentre = self.dimensions.getHexCentre(int(self.rowCount / 2), 1)
+    def createHexagon(self, row: int, column: int) -> Hexagon:
+        return Hexagon(self.dimensions.hexWidth, self.dimensions.getLidHeight(), self.dimensions.getHexCentre(row, column))
 
-        shallowEdges = []
-        roundedVertices = list(HexTileVertices)
+    def createHexagonConfiguration(self, row: int, column: int) -> HexagonConfiguration:
+        config = HexagonConfiguration(self.dimensions.getLidHeight(), self.dimensions.lidInfillThickness, self.dimensions.lidExternalWallThickness).withRays(0)
 
-        shift = height * cos(radians(self.dimensions.lidHoleAngle))
-        extrusionVector = -Vector(shift * cos(radians(60)), shift * sin(radians(60)), height)
-        fuser = Fuser(createCustomRoundedHexTile(self.dimensions.hexWidth * self.dimensions.lidHoleMultiplier, extrusionVector, tileCentre, self.dimensions.pinRadius, roundedVertices, shallowEdges))
+        adjacentDistanceDelta = self.dimensions.adjacentDistance / 2 / cos(radians(30))
+        pinWidthDelta = (self.dimensions.pinWidth - self.dimensions.adjacentDistance / 2) / cos(radians(30))
 
-        return fuser.rotate(centre, Vector(0, 0, 1), orientation).translate(Vector(0, 0, height))
+        if column == 0:
+            if row == 0:
+                config.withWalls(0, 0, 0, HexTileEdges.SW, HexTileEdges.W)
+                config.withWalls(0, 0, adjacentDistanceDelta, HexTileEdges.SE)
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.NW)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.NE)
+            elif row % 2 == 0:
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.NW)
+                config.withWalls(0, 0, 0, HexTileEdges.W)
+                config.withWalls(0, 0, adjacentDistanceDelta, HexTileEdges.SW)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.NE, HexTileVertices.SE)
+            elif row == self.rowCount - 1:
+                config.withWalls(0, 0, 0, HexTileEdges.NW)
+                config.withWalls(0, 0, pinWidthDelta, HexTileEdges.W)
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.NE)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.SE)
+                config.withRays(pinWidthDelta, HexTileVertices.S)
+            else:
+                config.withWalls(0, pinWidthDelta, pinWidthDelta, HexTileEdges.W)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.NE, HexTileVertices.SE)
+                config.withRays(pinWidthDelta, HexTileVertices.N, HexTileVertices.S)
+        else:
+            if row == 0:
+                config.withWalls(0, 0, pinWidthDelta, HexTileEdges.E)
+                config.withWalls(0, 0, 0, HexTileEdges.SE)
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.SW)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.NW)
+                config.withRays(pinWidthDelta, HexTileVertices.N)
+            elif row % 2 == 0:
+                config.withWalls(0, pinWidthDelta, pinWidthDelta, HexTileEdges.E)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.SW, HexTileVertices.NW)
+                config.withRays(pinWidthDelta, HexTileVertices.S, HexTileVertices.N)
+            elif row == self.rowCount - 1:
+                config.withWalls(0, 0, 0, HexTileEdges.NE, HexTileEdges.E)
+                config.withWalls(0, 0, adjacentDistanceDelta, HexTileEdges.NW)
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.SE)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.SW)
+            else:
+                config.withWalls(0, 0, adjacentDistanceDelta, HexTileEdges.NE)
+                config.withWalls(0, 0, 0, HexTileEdges.E)
+                config.withWalls(0, adjacentDistanceDelta, 0, HexTileEdges.SE)
+                config.withRays(adjacentDistanceDelta, HexTileVertices.NW, HexTileVertices.SW)
 
-    def createHandleRecess(self) -> Part.Solid:
-        assert self.rowCount % 2 == 0
+        return config
+
+    def getVertex(self, hexagon: Hexagon, vertex: HexTileVertices, external: bool, offset: float) -> Vector:
+        return hexagon.getVertex(vertex, (1 if external else self.dimensions.lidHoleMultiplier) + hexagon.getRayMultiplierForEdgeOffset(offset))
+
+    def createCustomWire(self, column: int, offset: float, internal: list[HexTileVertices]):
+        hexagon = self.createHexagon(int(self.rowCount / 2), column)
+
+        adjacentDistanceDelta = self.dimensions.adjacentDistance / 2 / cos(radians(30))
+
+        customOffsets = [HexTileVertices.NW, HexTileVertices.SW] if column == 1 else [HexTileVertices.NE, HexTileVertices.SE]
+
+        topWire = createWire(*(self.getVertex(hexagon, vertex, vertex not in internal, offset + (adjacentDistanceDelta if vertex in customOffsets else 0)) for vertex in HexTileVertices.iterate()))
+        bottomWire = createWire(*(self.getVertex(hexagon, vertex, vertex in internal, offset + (adjacentDistanceDelta if vertex in customOffsets else 0)) for vertex in HexTileVertices.iterate()))
+
+        bottomWire.translate(Vector(0, 0, -self.dimensions.getLidHeight()))
+
+        boardCentre = (self.dimensions.getHexCentre(0, 0) + self.dimensions.getHexCentre(self.rowCount - 1, 1)) / 2
 
         fuser = Fuser()
         for orientation in [0, 180]:
-            fuser.fuse(self.createSingleHandleHexRecess(orientation))
+            shape = Part.makeLoft([topWire, bottomWire], solid=True)
+            shape.rotate(boardCentre, Vector(0, 0, 1), orientation).translate(Vector(0, 0, self.dimensions.getLidHeight()))
+            fuser.fuse(shape)
 
         return fuser.solid
 
+    def createHandleShape(self, offset: float) -> Part.Solid:
+        part1 = self.createCustomWire(1, offset, [HexTileVertices.S, HexTileVertices.SW])
+        part2 = self.createCustomWire(0, offset, [HexTileVertices.SE])
+
+        return fuse(part1, part2)
+
     def createLid(self) -> MultiColourFuser:
-        height = self.dimensions.ceilingThickness + self.dimensions.magnetHeightCeiling
+        fuser = MultiColourFuser()
 
-        fuser = MultiColourFuser(Colour.WALLED_MESH, self.createFloor(height, True))
+        for row in range(self.rowCount):
+            for column in range(2):
+                fuser.fuse(Colour.BASE, self.createHexagon(row, column).createGrid(self.createHexagonConfiguration(row, column)))
 
-        fuser.fuseAll(self.createWalls(height, False, self.dimensions.magnetHeightCeiling, Colour.WALLED_MESH))
+        # walls, magnetHoles = self.createWalls(self.dimensions.getLidHeight(), False, self.dimensions.magnetHeightCeiling, Colour.WALLED_MESH)
+        # fuser.fuseColour(Colour.BASE, walls)
 
-        fuser.cut(self.createHandleRecess())
+        # fuser.cut(magnetHoles)
+        fuser.fuse(Colour.BASE, self.createHandleShape(0))
+        fuser.cut(self.createHandleShape(-self.dimensions.lidInfillThickness * 1.2)) # due to curving
+
+        bases, holes = self.createMagnetHoles(self.dimensions.magnetHeightCeiling, False, self.dimensions.getLidHeight())
+        fuser.fuse(Colour.BASE, bases)
+        fuser.cut(holes)
 
         return fuser

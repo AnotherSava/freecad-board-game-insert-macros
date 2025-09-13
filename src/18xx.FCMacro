@@ -3,7 +3,10 @@ from FreeCAD import Vector
 
 import importlib
 
-from Inserts.common import geometry, cylinders, pencil, fuser, colours, smartbox, magnets, labels, smartsolid, primitives, hexes
+import constants
+importlib.reload(constants) # force FreeCAD to reload modules
+
+from Inserts.common import geometry, cylinders, pencil, fuser, colours, smartbox, magnets, labels, smartsolid, primitives, hexes, hexagon
 
 importlib.reload(geometry) # force FreeCAD to reload modules
 importlib.reload(cylinders) # force FreeCAD to reload modules
@@ -16,6 +19,7 @@ importlib.reload(labels) # force FreeCAD to reload modules
 importlib.reload(smartsolid) # force FreeCAD to reload modules
 importlib.reload(primitives) # force FreeCAD to reload modules
 importlib.reload(hexes) # force FreeCAD to reload modules
+importlib.reload(hexagon) # force FreeCAD to reload modules
 
 from Inserts import company, lidbox, markerbox, cardbox, cubebox
 importlib.reload(lidbox) # force FreeCAD to reload modules
@@ -40,8 +44,8 @@ document = FreeCAD.newDocument('18xx-v6-rev')
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 # FreeCAD.Gui.activeDocument().activeView().viewLeft()
 # FreeCAD.Gui.activeDocument().activeView().viewFront()
-# FreeCAD.Gui.activeDocument().activeView().viewTop()
-FreeCAD.Gui.activeDocument().activeView().viewBottom()
+FreeCAD.Gui.activeDocument().activeView().viewTop()
+# FreeCAD.Gui.activeDocument().activeView().viewBottom()
 # FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 #
 # fuser = insert1822PNW.createMarkerBox(document)
@@ -60,7 +64,7 @@ FreeCAD.Gui.activeDocument().activeView().viewBottom()
 fuser = insert1822PNW.createTileBoardLid()
 
 # fuser = insert1822PNW.createImage()
-fuser.show(0)
+fuser.show(40)
 
 
 # insert1822PNW.createBoard()

@@ -88,8 +88,6 @@ class MarkerBox:
         fuser = MultiColourFuser(Colour.WHITE, labels)
         fuser.fuse(Colour.BASE, box).cut(markersAndStationsRecess, magnetHoles)
 
-        # Part.show(markersAndStationsRecess)
-
         return fuser
 
     def createRoundedRecess(self, length: float, width: float, height):
