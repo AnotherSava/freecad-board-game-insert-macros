@@ -1,14 +1,17 @@
+import math
 from math import tan, cos, sin, radians, pi
 
+from Inserts.common import geometry
+from Inserts.common.labels import Labels
 from Inserts.common.smartbox import SmartBox
 from typing import Callable
 
 import Part
-from FreeCAD import Vector
+from FreeCAD import Vector, Document
 
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.fuser import Fuser, fuseAll
-from Inserts.common.geometry import createWire
+from Inserts.common.geometry import createWire, createVector
 from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges, HexTileManifestEdges
 from dataclasses import dataclass
@@ -41,12 +44,15 @@ class HexImageDimensions:
     lineWidth: float
     whiteLayerHeight: float
     scale: float
+    fontSize: float
+    font: str
 
     def __init__(self, imageHeight: float, hexWidth: float, railWidth: float,
                  townBarWidth: float, townBarLength: float, cityDiameter: float,
-                 townDiameter: float, scale: float, lineWidth: float, whiteLayerHeight: float):
+                 townDiameter: float, scale: float, lineWidth: float, whiteLayerHeight: float, font: str, fontSize: float):
         self.imageHeight = imageHeight
         self.whiteLayerHeight = whiteLayerHeight
+        self.font = font
         self.scale = scale
 
         self.hexWidth = hexWidth * scale
@@ -56,6 +62,7 @@ class HexImageDimensions:
         self.cityDiameter = cityDiameter * scale
         self.townDiameter = townDiameter * scale
         self.lineWidth = lineWidth * scale
+        self.fontSize = fontSize * scale
 
         self.hex = Hex(self.hexWidth, Vector(0, 0))
 
@@ -73,12 +80,15 @@ class HexImageDimensions:
             townDiameter = self.townDiameter + self.lineWidth * 2,
             scale = self.scale,
             lineWidth = self.lineWidth,
-            whiteLayerHeight = self.whiteLayerHeight
+            whiteLayerHeight = self.whiteLayerHeight,
+            font = self.font,
+            fontSize = self.fontSize
         )
 
 class BaseElementFactory:
-    def __init__(self, dimensions: HexImageDimensions):
+    def __init__(self, dimensions: HexImageDimensions, document: Document):
         self.dimensions = dimensions
+        self.labels = Labels(document, dimensions.font, dimensions.fontSize)
 
     def alignToEdge(self, solid: Part.Solid, startEdge: HexTileEdges):
         solid.translate(Vector(-self.dimensions.hexWidth / 2, self.dimensions.railWidth / 2, 0))
@@ -126,6 +136,9 @@ class BaseElementFactory:
     def createCircle(self, radius: float) -> Part.Solid:
         return Part.makeCylinder(radius, self.dimensions.imageHeight)
 
+    def createCityCircle(self, centre: Vector = Vector(), delta: float = 0) -> Part.Solid:
+        return self.createCircle(self.dimensions.cityDiameter / 2 + delta).translate(centre)
+
     def createCurve(self, startEdge: HexTileEdges, outsideRadius: float, angle: float) -> Part.Solid:
         pencil = Pencil()
         internalRadius = (self.dimensions.hex.getSide() - self.dimensions.railWidth) / 2 + outsideRadius
@@ -161,6 +174,12 @@ class BaseElementFactory:
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
+    def createHalfRing(self, delta: float) -> Fuser:
+        outer = self.createCircle(self.dimensions.hexWidth / 3 + self.dimensions.railWidth / 2 + delta)
+        inner = self.createCircle(self.dimensions.hexWidth / 3 - self.dimensions.railWidth / 2 - delta)
+        box = SmartBox(self.dimensions.hexWidth, self.dimensions.hexWidth * 2, self.dimensions.imageHeight).translate(-self.dimensions.railWidth / 2, -self.dimensions.hexWidth)
+        return self.rotate30(Fuser(outer.cut(inner).cut(box.solid)))
+
     def createGentle(self, startEdge: HexTileEdges) -> Part.Solid:
         return self.createCurve(startEdge, self.dimensions.hex.getSide() / 2 / sin(radians(30)), 60)
 
@@ -173,29 +192,14 @@ class BaseElementFactory:
     def createSharpTown(self, startEdge: HexTileEdges) -> Part.Solid:
         return self.createTownCurve(startEdge, 0, 120)
 
-    def createCityInternals(self):
-        return self.createCircle(self.dimensions.cityDiameter / 2 - self.dimensions.lineWidth)
-
-    def createCity(self, *edges: HexTileEdges) -> Part.Solid:
-        outerCity = self.createCircle(self.dimensions.cityDiameter / 2)
-        innerCity = self.createCircle(self.dimensions.cityDiameter / 2 - self.dimensions.lineWidth)
-
-        fuser = Fuser()
-
-        for edge in edges:
-            fuser.fuse(self.createRay(edge))
-        
-        fuser.cut(outerCity)
-        fuser.fuse(outerCity)
-        fuser.cut(innerCity)
-
-        return fuser.solid
+    def createSingleCity(self, delta: float = 0) -> Part.Solid:
+        return self.createCityCircle(delta=delta)
 
     def createOuterDoubleCity(self, delta: float = 0) -> Part.Solid:
         fuser = Fuser()
 
         box = SmartBox(self.dimensions.cityDiameter + delta * 2, self.dimensions.cityDiameter + delta * 2, self.dimensions.imageHeight)
-        fuser.fuse(box.translate(-box.length / 2, -box.width / 2)).rotate(Vector(), Vector(0, 0, 1), -30)
+        self.rotate30(fuser.fuse(box.translate(-box.length / 2, -box.width / 2)))
         fuser.fuse(self.createInnerDoubleCity(delta))
 
         return fuser.solid
@@ -203,10 +207,41 @@ class BaseElementFactory:
     def createInnerDoubleCity(self, delta: float = 0) -> Part.Solid:
         fuser = Fuser()
 
-        fuser.fuse(self.createCircle(self.dimensions.cityDiameter / 2 + delta).translate(Vector(-self.dimensions.cityDiameter / 2 - self.dimensions.lineWidth / 2)))
-        fuser.fuse(self.createCircle(self.dimensions.cityDiameter / 2 + delta).translate(Vector(self.dimensions.cityDiameter / 2 + self.dimensions.lineWidth / 2)))
+        fuser.fuse(self.createCityCircle(Vector(-self.dimensions.cityDiameter / 2 - self.dimensions.lineWidth / 2), delta))
+        fuser.fuse(self.createCityCircle(Vector(self.dimensions.cityDiameter / 2 + self.dimensions.lineWidth / 2), delta))
 
-        return fuser.rotate(Vector(), Vector(0, 0, 1), -30).solid
+        return self.rotate30(fuser).solid
+
+    def createOuterTripleCity(self, delta: float = 0) -> Part.Solid:
+        d = (self.dimensions.cityDiameter + self.dimensions.lineWidth * 2) / math.sqrt(3)
+        r = self.dimensions.cityDiameter / 2 + delta
+        l = self.dimensions.cityDiameter + self.dimensions.lineWidth * 2
+
+        pencil = Pencil()
+        pencil.draw(d, 60)
+        pencil.up(r)
+        pencil.right(l)
+        pencil.down(r)
+        pencil.draw(r, -120)
+        pencil.draw(l, 150)
+        pencil.draw(r, 60)
+        pencil.draw(r, 120)
+        pencil.draw(l, 30)
+        pencil.draw(r, -60)
+
+        fuser = self.rotate30(Fuser(pencil.extrude(self.dimensions.imageHeight)))
+        fuser.fuse(self.createInnerTripleCity(delta))
+
+        return fuser.solid
+
+    def createInnerTripleCity(self, delta: float = 0) -> Part.Solid:
+        fuser = Fuser()
+
+        d = (self.dimensions.cityDiameter + self.dimensions.lineWidth * 2) / math.sqrt(3)
+        for i in range(3):
+            fuser.fuse(self.createCityCircle(geometry.createVector(d, i * 120 - 60), delta))
+
+        return self.rotate30(fuser).solid
 
     def createTown(self) -> Part.Solid:
         return self.createCircle(self.dimensions.townDiameter / 2)
@@ -214,11 +249,21 @@ class BaseElementFactory:
     def createRays(self, *edges: HexTileEdges) -> Part.Solid:
         return fuseAll(self.createRay(edge) for edge in edges)
 
+    def rotate30(self, fuser: Fuser) -> Fuser:
+        return fuser.rotate(Vector(), Vector(0, 0, 1), -30)
+
+    def createLabel(self, label: str, angle: float) -> Fuser:
+        length = self.dimensions.hexWidth / 6
+        width = self.dimensions.hexWidth / 6
+        text = Fuser(self.labels.createText(label, length, width, self.dimensions.imageHeight).translate(Vector(-length / 2, -width / 2)))
+
+        return self.rotate30(text.translate(createVector(self.dimensions.hexWidth * 0.435, angle)))
+
 class Images:
-    def __init__(self, dimensions: HexImageDimensions):
+    def __init__(self, dimensions: HexImageDimensions, document: Document):
         self.dimensions = dimensions
-        self.baseFactory = BaseElementFactory(dimensions)
-        self.outlineFactory = BaseElementFactory(dimensions.createOutline())
+        self.baseFactory = BaseElementFactory(dimensions, document)
+        self.outlineFactory = BaseElementFactory(dimensions.createOutline(), document)
 
     def createHex(self, height: float = None) -> Part.Solid:
         wire = createWire(*(self.dimensions.hex.getVector(x) for x in HexTileVertices.iterate()))
@@ -226,33 +271,42 @@ class Images:
         solid = face.extrude(Vector(0, 0, height or self.dimensions.imageHeight))
         return solid
 
-    def createCity(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
+    def createMine(self, upgraded) -> MultiColourFuser:
+        fuser = self.createGenericCity(Colour.GRAY, Colour.GRAY, BaseElementFactory.createSingleCity, BaseElementFactory.createSingleCity, None, None, HexTileManifestEdges.S, HexTileManifestEdges.N)
+        if upgraded:
+            fuser.replace(Colour.WHITE, self.baseFactory.createHalfRing(self.dimensions.lineWidth))
+            fuser.replace(Colour.BLACK, self.baseFactory.createHalfRing(0))
+        return fuser
+
+    def createSingleCity(self, colour: Colour, letter: str | None, angle: float | None, *edges: HexTileEdges) -> MultiColourFuser:
+        return self.createGenericCity(colour, Colour.WHITE, BaseElementFactory.createSingleCity, BaseElementFactory.createSingleCity, letter, angle, *edges)
+
+    def createDoubleCity(self, colour: Colour, letter: str | None, angle: float | None, *edges: HexTileEdges) -> MultiColourFuser:
+        return self.createGenericCity(colour, Colour.WHITE, BaseElementFactory.createInnerDoubleCity, BaseElementFactory.createOuterDoubleCity, letter, angle, *edges)
+
+    def createTripleCity(self, colour: Colour, letter: str | None, angle: float | None, *edges: HexTileEdges) -> MultiColourFuser:
+        return self.createGenericCity(colour, Colour.WHITE, BaseElementFactory.createInnerTripleCity, BaseElementFactory.createOuterTripleCity, letter, angle, *edges)
+
+    def createGenericCity(self, colour: Colour, cityColour: Colour, innerCityMethod: Callable, outerCityMethod: Callable, letter: str | None, angle: float | None, *edges: HexTileEdges) -> MultiColourFuser:
         multiFuser = MultiColourFuser()
 
-        multiFuser.fuse(Colour.BLACK, self.baseFactory.createCity(*edges))
+        multiFuser.fuse(cityColour, innerCityMethod(self.baseFactory))
+        multiFuser.fuseUnique(Colour.BLACK, innerCityMethod(self.baseFactory, self.dimensions.lineWidth))
 
-        multiFuser.fuseUnique(Colour.WHITE, self.outlineFactory.createCity(*edges))
-        multiFuser.fuse(Colour.WHITE, self.baseFactory.createCityInternals())
-
-        return self.putOnHex(multiFuser, colour)
-
-    def createDoubleCity(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
-        multiFuser = MultiColourFuser()
-
-        multiFuser.fuse(Colour.WHITE, self.baseFactory.createInnerDoubleCity())
-        multiFuser.fuseUnique(Colour.BLACK, self.baseFactory.createInnerDoubleCity(self.dimensions.lineWidth))
-
-        multiFuser.fuseUnique(Colour.WHITE, self.baseFactory.createOuterDoubleCity())
-        multiFuser.fuseUnique(Colour.BLACK, self.baseFactory.createOuterDoubleCity(self.dimensions.lineWidth))
+        multiFuser.fuseUnique(Colour.WHITE, outerCityMethod(self.baseFactory))
+        multiFuser.fuseUnique(Colour.BLACK, outerCityMethod(self.baseFactory, self.dimensions.lineWidth))
 
         multiFuser.fuseUnique(Colour.BLACK, self.baseFactory.createRays(*edges))
         multiFuser.fuseUnique(Colour.WHITE, self.outlineFactory.createRays(*edges))
 
-        multiFuser.fuseUnique(Colour.WHITE, self.baseFactory.createOuterDoubleCity(self.dimensions.lineWidth * 2))
+        multiFuser.fuseUnique(Colour.WHITE, outerCityMethod(self.baseFactory, self.dimensions.lineWidth * 2))
+
+        if letter is not None:
+            multiFuser.fuse(Colour.BLACK, self.baseFactory.createLabel(letter, angle))
 
         return self.putOnHex(multiFuser, colour)
 
-    def createTown(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
+    def createLabeledTown(self, colour: Colour, letter: str | None, angle: float | None, *edges: HexTileEdges) -> MultiColourFuser:
         multiFuser = MultiColourFuser()
 
         multiFuser.fuse(Colour.BLACK, self.baseFactory.createTown())
@@ -260,7 +314,13 @@ class Images:
         multiFuser.fuseUnique(Colour.BLACK, self.baseFactory.createRays(*edges))
         multiFuser.fuseUnique(Colour.WHITE, self.outlineFactory.createRays(*edges))
 
+        if letter is not None:
+            multiFuser.fuse(Colour.BLACK, self.baseFactory.createLabel(letter, angle))
+
         return self.putOnHex(multiFuser, colour)
+
+    def createTown(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
+        return self.createLabeledTown(colour, None, None, *edges)
 
     def createRays(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
         multiFuser = MultiColourFuser()
@@ -271,12 +331,15 @@ class Images:
         return self.putOnHex(multiFuser, colour)
 
     def createSimpleTile(self, colour: Colour, trackMethod: Callable, startEdge: HexTileEdges) -> MultiColourFuser:
+        return self.createCustomTile(colour, Colour.WHITE, Colour.BLACK, trackMethod, startEdge)
+
+    def createCustomTile(self, tileColour: Colour, outlineColour: Colour, trackColour: Colour, trackMethod: Callable, startEdge: HexTileEdges) -> MultiColourFuser:
         multiFuser = MultiColourFuser()
 
-        multiFuser.fuse(Colour.BLACK, trackMethod(self.baseFactory, startEdge))
-        multiFuser.fuseUnique(Colour.WHITE, trackMethod(self.outlineFactory, startEdge))
+        multiFuser.fuse(trackColour, trackMethod(self.baseFactory, startEdge))
+        multiFuser.fuseUnique(outlineColour, trackMethod(self.outlineFactory, startEdge))
 
-        return self.putOnHex(multiFuser, colour)
+        return self.putOnHex(multiFuser, tileColour)
 
     def putOnHex(self, fuser: MultiColourFuser, colour: Colour) -> MultiColourFuser:
         fuser.fuseUnique(colour, self.createHex())
@@ -287,19 +350,19 @@ class Images:
 
         return fuser
 
-    def createTile(self, number: int) -> MultiColourFuser:
+    def createTile(self, number) -> MultiColourFuser:
         match number:
             case 3: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createSharpTown, HexTileManifestEdges.S)
             case 4: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createStraightTown, HexTileManifestEdges.S)
-            case 5: return self.createCity(Colour.YELLOW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
-            case 6: return self.createCity(Colour.YELLOW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
+            case 5: return self.createSingleCity(Colour.YELLOW, None, None, HexTileManifestEdges.S, HexTileManifestEdges.SE)
+            case 6: return self.createSingleCity(Colour.YELLOW, None, None, HexTileManifestEdges.S, HexTileManifestEdges.NE)
             case 7: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createSharp, HexTileManifestEdges.S)
             case 8: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createGentle, HexTileManifestEdges.S)
             case 9: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createStraight, HexTileManifestEdges.S)
             case 58: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createGentleTown, HexTileManifestEdges.S)
-            case 57: return self.createCity(Colour.YELLOW, HexTileManifestEdges.S, HexTileManifestEdges.N)
+            case 57: return self.createSingleCity(Colour.YELLOW, None, None, HexTileManifestEdges.S, HexTileManifestEdges.N)
 
-            case 14: return self.createDoubleCity(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
+            case 14: return self.createDoubleCity(Colour.GREEN, None, None, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
             case 15: return self.createDoubleCity(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 80: return self.createRays(Colour.GREEN, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 143: return self.createTown(Colour.GREEN, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
@@ -310,5 +373,36 @@ class Images:
             case 83: return self.createRays(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.S, HexTileManifestEdges.NW)
             case 142: return self.createTown(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.S, HexTileManifestEdges.NW)
             case 619: return self.createDoubleCity(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.NE, HexTileManifestEdges.S)
+            case 207: return self.createDoubleCity(Colour.GREEN, 'Y', -20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
+            case 208: return self.createDoubleCity(Colour.GREEN, 'Y', -20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
+            case 405: return self.createDoubleCity(Colour.GREEN, 'T', 160, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.SE)
+            case 622: return self.createDoubleCity(Colour.GREEN, 'Y', 20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
+
+            case 63: return self.createTripleCity(Colour.BROWN, None, None, *list(HexTileManifestEdges))
+            case 544: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
+            case 545: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
+            case 546: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
+            case 611: return self.createDoubleCity(Colour.BROWN, None, None, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.NW, HexTileManifestEdges.N, HexTileManifestEdges.NE)
+            case 768: return self.createTown(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
+            case 767: return self.createTown(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
+            case 769: return self.createTown(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
+            case "X5": return self.createTripleCity(Colour.BROWN, 'Y', 20, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.NW, HexTileManifestEdges.N, HexTileManifestEdges.NE)
+            case "X10": return self.createDoubleCity(Colour.BROWN, 'T', 160, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.SE)
+
+            case 60: return self.createRays(Colour.GRAY, *list(HexTileManifestEdges))
+            case 169: return self.createRays(Colour.GRAY, HexTileManifestEdges.S, HexTileManifestEdges.NW, HexTileManifestEdges.N, HexTileManifestEdges.NE, HexTileManifestEdges.SE)
+            case 895: return self.createDoubleCity(Colour.GRAY, None, None,*list(HexTileManifestEdges))
+            case "X11": return self.createTripleCity(Colour.GRAY, 'Y', 20, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.NW, HexTileManifestEdges.N, HexTileManifestEdges.NE)
+            case "X16": return self.createTripleCity(Colour.GRAY, 'T', 20, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.SE)
+            case "X17": return self.createTown(Colour.GRAY, *list(HexTileManifestEdges))
+            case 51: return self.createDoubleCity(Colour.GRAY, None, None, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.NW, HexTileManifestEdges.N, HexTileManifestEdges.NE)
+
+            case "PNW1": return self.createCustomTile(Colour.BLUE, Colour.BLACK, Colour.WHITE, BaseElementFactory.createStraight, HexTileManifestEdges.S)
+            case "PNW2": return self.createCustomTile(Colour.BLUE, Colour.BLACK, Colour.WHITE, BaseElementFactory.createGentle, HexTileManifestEdges.S)
+            case "PNW3": return self.createLabeledTown(Colour.GRAY, "30", 25, *list(HexTileManifestEdges))
+            case "PNW4": return self.createMine(False)
+            case "PNW5": return self.createMine(True)
+
+
 
         raise(f"Invalid tile number: {number}")

@@ -49,7 +49,9 @@ hexImageDimensions = HexImageDimensions(
     townDiameter=4,
     scale=1,
     lineWidth=0.45,
-    whiteLayerHeight=0.16
+    whiteLayerHeight=0.16,
+    font="C:/Windows/Fonts/arialbd.ttf",
+    fontSize=4,
 )
 
 companyBoxDimensions = company.Dimensions(
@@ -173,17 +175,20 @@ markerBoxDimensions = markerbox.Dimensions(
     # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
 )
 
-def createYellowTileBoard() -> MultiColourFuser:
-    return createTileBoard(58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)
+def createYellowTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
+    return createTileBoard(document, 58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)
 
-def createGreenTileBoard() -> MultiColourFuser:
-    return createTileBoard(144, 143, 142, 141, 15, 15, 619, 619, 80, 14, 81, 81, 82, 82, 83, 83)
+def createGreenTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
+    return createTileBoard(document, 144, 143, 142, 141, 15, 15, 619, 619, 80, 14, 81, 81, 82, 82, 83, 83)
 
-def createTileBoard(*tileNumbers) -> MultiColourFuser:
+def createBrownTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
+    return createTileBoard(document, "X5", "X10", 769, 767, 63, 768, 611, 611, 546, 545, 544, 544, 622, 405, 207, 208)
+
+def createTileBoard(document : FreeCAD.Document, *tileNumbers) -> MultiColourFuser:
     assert len(tileNumbers) % 2 == 0
 
     condensedBoard = CondensedBoard(gridDimensions, int(len(tileNumbers) / 2))
-    imageFactory = Images(hexImageDimensions)
+    imageFactory = Images(hexImageDimensions, document)
     boardFuser = condensedBoard.createBoard().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
 
     multiFuser = MultiColourFuser()
@@ -236,7 +241,7 @@ def createTest():
     # return MultiColourFuser(Colour.BASE, base)
     # return MultiColourFuser(Colour.BASE, box)
 
-def createImage():
-    imageFactory = Images(hexImageDimensions)
-    return imageFactory.createTile(619).rotate(Vector(), Vector(0, 0, 1), 30)
+def createImage(document: FreeCAD.Document) -> MultiColourFuser:
+    imageFactory = Images(hexImageDimensions, document)
+    return imageFactory.createTile("PNW5").rotate(Vector(), Vector(0, 0, 1), 30)
 

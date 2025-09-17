@@ -75,9 +75,9 @@ class MultiColourFuser:
 
         return self.fuse(colour, uniqueSolid)
 
-    def replace(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
-        self.cut(solid)
-        return self.fuse(colour, solid)
+    def replace(self, colour: Colour, element) -> 'MultiColourFuser':
+        self.cut(element)
+        return self.fuse(colour, element)
 
     def common(self, solid: Part.Solid) -> 'MultiColourFuser':
         for fuser in self.fuserByColour.values():
