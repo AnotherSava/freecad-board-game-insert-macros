@@ -16,7 +16,7 @@ from Inserts.hex.condensed import CondensedBoard, GridDimensions
 from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
 from Inserts.markerbox import MarkerBox
-from constants import nozzleSize, magnet3Height, magnet2Height, magnet3Diameter
+from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
 
 gridDimensions = GridDimensions(
     hexWidth=28,
@@ -24,12 +24,13 @@ gridDimensions = GridDimensions(
     pinLength=6,
     pinRadius=1,
     pinHeight=10,
-    floorThickness=1.6,
+    floorThickness=0.8,
     ceilingThickness=0.8,
     adjacentDistance=1.2,
-    magnetDiameter=magnet3Diameter + 0.15,
-    magnetHeightFloor=magnet3Height,
-    magnetHeightCeiling=magnet3Height,
+    magnetDiameterFloor=magnet2Diameter + 0.05,
+    magnetDiameter=magnet3Diameter + 0.05,
+    magnetHeightFloor=magnet3x3height,
+    magnetHeightCeiling=magnet2x3height,
     thinnestWall=nozzleSize * 2,
     maxRowsPerMagnet=2,
     lidHoleAngle=45,
@@ -137,8 +138,8 @@ cubeBoxDimensions = cubebox.CubeBoxDimensions(
     height=cubeBoxHeight,
     playerCubeSpaceWidth=19.5,
     magnetDiameter=magnet3Diameter,
-    magnetHeightBox=magnet3Height,
-    magnetHeightLid=magnet3Height,
+    magnetHeightBox=magnet3x3height,
+    magnetHeightLid=magnet3x3height,
     cubeSize=8,
     thinnestWall=nozzleSize * 2
 )
@@ -156,9 +157,9 @@ markerBoxDimensions = markerbox.Dimensions(
     padding=2,
     delta=nozzleSize * 2,
     magnetDiameter=magnet3Diameter,
-    magnetHeightBox=magnet3Height,
+    magnetHeightBox=magnet3x3height,
     magnetCountBox=2,
-    magnetHeightLid=magnet3Height,
+    magnetHeightLid=magnet3x3height,
     magnetCountLid=2,
     wallThickness=1.2,
     handleRadius=2,

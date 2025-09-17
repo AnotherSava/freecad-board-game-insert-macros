@@ -28,6 +28,7 @@ class GridDimensions:
     ceilingThickness: float
     adjacentDistance: float # distance between horizontally adjacent tiles
     magnetDiameter: float
+    magnetDiameterFloor: float
     magnetHeightFloor: float
     magnetHeightCeiling: float
     thinnestWall: float
@@ -60,8 +61,8 @@ class GridDimensions:
     def getLidHeight(self) -> float:
         return self.ceilingThickness + self.magnetHeightCeiling
 
-    def getMagnetHoleLocation(self, row: int, column: int) -> Vector:
-        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToOuterPinAngle() - getWidestRadius(self.magnetDiameter, self.thinnestWall) / cos(radians(30)))
+    def getMagnetHoleLocation(self, row: int, column: int, magnetDiameter: float) -> Vector:
+        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToOuterPinAngle() - getWidestRadius(magnetDiameter, self.thinnestWall) / cos(radians(30)))
         if (row + column) % 2 == 0: # magnet is on the bottom of the hex
             hexCentre = self.getHexCentre(row, math.floor(column / 2))
             return hexCentre - hexCentreToHoleUp
@@ -237,21 +238,21 @@ class CondensedBoard:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
-    def createMagnetHoles(self, magnetHeight: float, magnetOnTop: bool, baseHeight: float) -> (Part.Solid, Part.Solid):
+    def createMagnetHoles(self, magnetDiameter: float, magnetHeight: float, magnetOnTop: bool, baseHeight: float) -> (Part.Solid, Part.Solid):
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
 
         magnetDetails = []
 
         for i in wallFactory.getExtraMagnetRowIndices():
-            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 0)))
-            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 3)))
+            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 0, magnetDiameter)))
+            magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(i, 3, magnetDiameter)))
 
-        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 0)))
-        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 2)))
-        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 1)))
-        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 3)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 0, magnetDiameter)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(0, 2, magnetDiameter)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 1, magnetDiameter)))
+        magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 3, magnetDiameter)))
 
-        return magnets.createMagnetHolders(self.dimensions.magnetDiameter, magnetHeight, magnetOnTop, baseHeight, self.dimensions.thinnestWall, magnetDetails)
+        return magnets.createMagnetHolders(magnetDiameter, magnetHeight, magnetOnTop, baseHeight, self.dimensions.thinnestWall, magnetDetails)
 
     def chooseRoundedVertices(self, column: int, row: int, rowCount: int):
         if column == 0:
@@ -280,24 +281,31 @@ class CondensedBoard:
 
         return fuser
 
-    def createWalls(self, height: float, magnetsTop: bool, magnetHeight: float, colourWalls: Colour) -> (MultiColourFuser, Part.Solid):
+    def createWalls(self, colourWalls: Colour, height: float, magnetsTop: bool = None, magnetHeight: float = None) -> (MultiColourFuser, Part.Solid):
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
-        fuser = MultiColourFuser()
 
-        fuser.fuseAll(wallFactory.createWalls(height, colourWalls, Colour.BASE))
+        fuser = wallFactory.createWalls(height, colourWalls, Colour.BASE)
         fuser.fuse(colourWalls, wallFactory.createDividerWalls(height))
 
-        magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
-        if magnetsTop:
-            magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
-        fuser.cut(magnetHoles)
+        magnetHoles = None
+        if magnetHeight is not None:
+            magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
+            if magnetsTop:
+                magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
+            fuser.cut(magnetHoles)
 
         return fuser, magnetHoles
 
     def createBoard(self) -> MultiColourFuser:
         fuser = MultiColourFuser()
         fuser.fuse(Colour.BASE, self.createFloor(self.dimensions.floorThickness))
-        fuser.fuseAll(self.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor, Colour.BASE))
+        # fuser.fuseAll(self.createWalls(Colour.BASE, self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor))
+        walls, oldMagnetHoles = self.createWalls(Colour.BASE, self.dimensions.pinHeight + self.dimensions.floorThickness)
+        fuser.fuseAll(walls)
+        bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, self.dimensions.pinHeight + self.dimensions.floorThickness)
+        fuser.fuse(Colour.BASE, bases)
+        fuser.cut(holes)
+
         return fuser
 
     def createHexagon(self, row: int, column: int) -> Hexagon:
@@ -399,7 +407,7 @@ class CondensedBoard:
         fuser.fuse(Colour.BASE, self.createHandleShape(0))
         fuser.cut(self.createHandleShape(-self.dimensions.lidInfillThickness * 1.2)) # due to curving
 
-        bases, holes = self.createMagnetHoles(self.dimensions.magnetHeightCeiling, False, self.dimensions.getLidHeight())
+        bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameter, self.dimensions.magnetHeightCeiling, False, self.dimensions.getLidHeight())
         fuser.fuse(Colour.BASE, bases)
         fuser.cut(holes)
 

@@ -95,6 +95,10 @@ def createMagnetHolders(magnetDiameter: float, magnetHeight: float, magnetOnTop:
     holes = createMagnetHoles(magnetDiameter, magnetHeight, magnetOnTop, magnetDetailsList)
     bases = createMagnetBases(magnetDiameter, magnetHeight, magnetOnTop, baseHeight, delta, magnetDetailsList)
 
+    if magnetOnTop:
+        holes.translate(Vector(0, 0, baseHeight))
+        bases.translate(Vector(0, 0, baseHeight))
+
     return bases, holes
 
 def createMagnetBases(magnetDiameter: float, magnetHeight: float, magnetOnTop: bool, baseHeight: float, delta: float, magnetDetailsList: Iterable[MagnetDetails]) -> Part.Solid:
