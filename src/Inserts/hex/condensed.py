@@ -3,12 +3,11 @@ from math import tan, cos, sin, radians, ceil, floor
 
 import Part
 from FreeCAD import Vector
-from Part import Wire
 
 from Inserts.common import magnets
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.geometry import shiftVector, createWire, extrudeWire
+from Inserts.common.geometry import createWire
 from Inserts.common.hexagon import Hexagon, HexagonConfiguration
 from Inserts.common.hexes import createRoundedHexTile
 from Inserts.common.magnets import MagnetDetails, getWidestRadius
@@ -38,14 +37,14 @@ class GridDimensions:
     lidInfillThickness: float
     lidExternalWallThickness: float
 
-    def getHexSide(self):
-        return self.hexWidth * tan(radians(30))
+    def getHexSide(self, hexWidth: float = None):
+        return (hexWidth or self.hexWidth) * tan(radians(30))
 
     def getDistanceFromHexCentreToOuterPinAngle(self):
         return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexWidth)
 
-    def getDistanceFromHexCentreToHexCorner(self, hexWidth: float):
-        return hexWidth / 2 / cos(radians(30))
+    def getDistanceFromHexCentreToHexCorner(self, hexWidth: float = None):
+        return (hexWidth or self.hexWidth) / 2 / cos(radians(30))
 
     def getCondensedDistanceY(self):
         return (self.hexWidth + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
@@ -75,87 +74,57 @@ class CondensedWalls:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
-    def getShortSegmentLength(self, startDown: bool, top: bool, segmentIndex: int = 0) -> float:
-        segmentDown = self.isSegmentDown(startDown, segmentIndex)
-        return self.dimensions.pinLength + (0 if (segmentDown != top) == (segmentIndex > 0) else self.dimensions.pinWidth * tan(radians(30)))
+    def createWallTip(self, pencil: Pencil, angle: float, shortFirst: bool, shortEndCoefficient: float, thickness: float):
+        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
+        shortTipLength = side * shortEndCoefficient
+        longTipLength = shortTipLength + thickness * tan(radians(30))
 
-    def isSegmentDown(self, startDown: bool, segmentIndex: int = 0) -> int:
-        return startDown == (segmentIndex % 2 == 0)
+        pencil.draw(shortTipLength if shortFirst else longTipLength, angle)
+        pencil.draw(thickness, angle + 90)
+        pencil.draw(longTipLength if shortFirst else shortTipLength, angle + 180)
 
-    def getSegmentAngle(self, startDown: bool, segmentIndex: int = 0) -> int:
-        return -120 if self.isSegmentDown(startDown, segmentIndex) else -60
-
-    def createSingleSnakeWall(self, startDown: bool, segmentCount: int, top: bool) -> list[Vector]:
-        fullSegmentLength = (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2 / sin(radians(60))
-
-        currentPoint = Vector(0, self.dimensions.pinWidth / cos(radians(30)) if top else 0)
-
-        points = [shiftVector(currentPoint, self.getShortSegmentLength(startDown, top), self.getSegmentAngle(startDown) + 180), currentPoint]
+    def createCustomWall(self, row: int, column: int, top: bool, segmentCount: int, shortEndCoefficient: float, thickness: float, height: float) -> Part.Solid:
+        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
+        pencil = Pencil()
+        nextAngle = -120
 
         for i in range(segmentCount):
-            currentPoint = shiftVector(currentPoint, fullSegmentLength, self.getSegmentAngle(startDown, i + 1))
-            points.append(currentPoint)
+            pencil.draw(side, nextAngle)
+            nextAngle = 180 - nextAngle
 
-        points.append(shiftVector(currentPoint, self.getShortSegmentLength(startDown, top, segmentCount + 1), self.getSegmentAngle(startDown, segmentCount + 1)))
+        self.createWallTip(pencil, nextAngle, segmentCount % 2 == 0, shortEndCoefficient, thickness)
 
-        return points
-
-    def createMagnetHolesWall(self, startDown: bool, segmentCount: int, magnetHeight: float):
-        pinWidthY = self.dimensions.pinWidth / cos(radians(30))
-
-        fullSegmentLength = (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2 / sin(radians(60))
-
-        wallAngleFacingUp = not startDown
-        currentPoint = Vector(0, pinWidthY if wallAngleFacingUp else 0)
-        fusedMagnetHoles = self.createMagnetHole(currentPoint, wallAngleFacingUp, magnetHeight)
-
+        nextAngle = -nextAngle
         for i in range(segmentCount):
-            wallAngleFacingUp = not wallAngleFacingUp
-            currentPoint = shiftVector(shiftVector(currentPoint, fullSegmentLength, self.getSegmentAngle(startDown, i + 1)), pinWidthY, 0 if wallAngleFacingUp else 180)
-            if i == segmentCount - 1:
-                fusedMagnetHoles = fusedMagnetHoles.fuse(self.createMagnetHole(currentPoint, wallAngleFacingUp, magnetHeight))
+            pencil.draw(side, nextAngle)
+            nextAngle = 180 - nextAngle
 
-        return fusedMagnetHoles
+        self.createWallTip(pencil, 120, False, shortEndCoefficient, thickness)
 
-    def createDoubleSnakeWallWire(self, startDown: bool, segmentCount: int) -> Wire:
-        topWall = self.createSingleSnakeWall(startDown, segmentCount, True)
-        bottomWall = self.createSingleSnakeWall(startDown, segmentCount, False)
-        bottomWall.reverse()
+        wall = pencil.extrude(height)
 
-        points = topWall + bottomWall
+        if not top:
+            wall = wall.mirror(Vector(), Vector(0, 1, 0)) # invert X axis
+            wall.translate(Vector(0, -self.dimensions.getDistanceFromHexCentreToHexCorner()))
+        else:
+            wall.translate(Vector(0, self.dimensions.getDistanceFromHexCentreToHexCorner()))
 
-        return createWire(*points)
+        wall.translate(self.dimensions.getHexCentre(row, column))
 
-    def getRowShift(self, rowIndex: int, columnIndex: int, down: bool) -> Vector:
-        distanceYa = self.dimensions.getDistanceFromHexCentreToHexCorner(self.dimensions.hexWidth + self.dimensions.pinWidth)
-        y = self.dimensions.getCondensedDistanceY() * rowIndex if down else self.dimensions.getCondensedDistanceY() * (rowIndex - 1) + 2 * distanceYa
-        x = columnIndex * (self.dimensions.hexWidth + self.dimensions.adjacentDistance) / 2
-        return Vector(x, y)
+        return wall
 
-    def createWalls(self, height: float, colourBase: Colour, colourMagnets: Colour) -> MultiColourFuser:
-        indices = self.getExtraMagnetRowIndices()
-        fuser = MultiColourFuser()
+    def createWalls(self, height: float) -> Fuser:
+        fuser = Fuser()
 
-        for row in range(1, self.rowCount):
-            startDown = row % 2 == 0
-            wire = self.createDoubleSnakeWallWire(startDown, 3)
-            wire.translate(self.getRowShift(row, 0, startDown))
-            fuser.fuse(colourBase, extrudeWire(wire, height))
+        for row in range(self.rowCount - 1):
+            top = row % 2 == 0
+            fuser.fuse(self.createCustomWall(row if top else row + 1, 0, top, 3, 0.3, self.dimensions.pinWidth, height))
 
-        for row in [0, self.rowCount]:
-            shift = 1 if row == self.rowCount and row % 2 == 0 else 0
-            startDown = row == 0
-            for j in range(2):
-                wire = self.createDoubleSnakeWallWire(startDown, 0)
-                wire.translate(self.getRowShift(row, j * 2 + shift, startDown))
-                fuser.fuse(colourMagnets, extrudeWire(wire, height))
+        for column in range(2):
+            fuser.fuse(self.createCustomWall(0, column, False, 0, 0.3, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createCustomWall(self.rowCount - 1, column, True, 0, 0.3, self.dimensions.pinWidth, height))
 
-        for row in indices:
-            for j in range(2):
-                startDown = (row + j) % 2 == 0
-                wire = self.createDoubleSnakeWallWire(startDown, 0)
-                wire.translate(self.getRowShift(row, j * 3, startDown))
-                fuser.replace(colourMagnets, extrudeWire(wire, height))
+        fuser.fuse(self.createDividerWalls(height))
 
         return fuser
 
@@ -182,27 +151,6 @@ class CondensedWalls:
 
         return fuser.solid
 
-    def createMagnetHole(self, vector: Vector, top: bool, magnetHeight: float):
-        longerSideDelta = (self.dimensions.magnetDiameter / 2) * (1 + tan(radians(30)))
-        holeWidth = self.dimensions.pinWidth - self.dimensions.thinnestWall
-        shorterSideDelta = longerSideDelta - holeWidth * tan(radians(30))
-
-        pencil = Pencil()
-        pencil.draw(longerSideDelta, 60)
-        pencil.draw(holeWidth, -30)
-        pencil.draw(shorterSideDelta, -120)
-        pencil.draw(shorterSideDelta, -60)
-        pencil.draw(holeWidth, -150)
-        hole = pencil.extrude(magnetHeight)
-
-        hole.translate(Vector(0, self.dimensions.thinnestWall / cos(radians(30))))
-
-        if top:
-            hole.rotate(Vector(0, 0, 0), Vector(0, 0, 1), 180)
-        hole.translate(vector)
-
-        return hole
-
     def roundTowardsCentre(self, number: float, centre: float) -> int:
         return ceil(number) if number < centre else floor(number)
 
@@ -214,24 +162,6 @@ class CondensedWalls:
 
         return [self.roundTowardsCentre((i + 1) * spacing, centre) for i in range(extraMagnetRowCount)]
 
-    def createMagnetHoles(self, magnetHeight: float) -> Part.Solid:
-        fuser = Fuser()
-
-        for i in self.getExtraMagnetRowIndices():
-            startDown = i % 2 == 0
-            magnetHoles = self.createMagnetHolesWall(startDown, 3, magnetHeight)
-            magnetHoles = magnetHoles.translate(self.getRowShift(i, 0, startDown))
-            fuser.fuse(magnetHoles)
-
-        for i in [0, self.rowCount]:
-            shift = 1 if i == self.rowCount and i % 2 == 0 else 0
-            for j in range(2):
-                startDown = i == 0
-                magnetHoles = self.createMagnetHolesWall(startDown, 0, magnetHeight)
-                magnetHoles = magnetHoles.translate(self.getRowShift(i, j * 2 + shift, startDown))
-                fuser.fuse(magnetHoles)
-
-        return fuser.solid
 
 class CondensedBoard:
     def __init__(self, dimensions: GridDimensions, rowCount: int):
@@ -284,29 +214,22 @@ class CondensedBoard:
     def createWalls(self, colourWalls: Colour, height: float, magnetsTop: bool = None, magnetHeight: float = None) -> (MultiColourFuser, Part.Solid):
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
 
-        fuser = wallFactory.createWalls(height, colourWalls, Colour.BASE)
-        fuser.fuse(colourWalls, wallFactory.createDividerWalls(height))
-
-        magnetHoles = None
-        if magnetHeight is not None:
-            magnetHoles = wallFactory.createMagnetHoles(magnetHeight)
-            if magnetsTop:
-                magnetHoles = magnetHoles.translate(Vector(0, 0, height - magnetHeight))
-            fuser.cut(magnetHoles)
-
-        return fuser, magnetHoles
-
-    def createBoard(self) -> MultiColourFuser:
-        fuser = MultiColourFuser()
-        fuser.fuse(Colour.BASE, self.createFloor(self.dimensions.floorThickness))
-        # fuser.fuseAll(self.createWalls(Colour.BASE, self.dimensions.pinHeight + self.dimensions.floorThickness, True, self.dimensions.magnetHeightFloor))
-        walls, oldMagnetHoles = self.createWalls(Colour.BASE, self.dimensions.pinHeight + self.dimensions.floorThickness)
-        fuser.fuseAll(walls)
-        bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, self.dimensions.pinHeight + self.dimensions.floorThickness)
-        fuser.fuse(Colour.BASE, bases)
-        fuser.cut(holes)
+        fuser = wallFactory.createWalls(height)
 
         return fuser
+
+    def createBoard(self) -> MultiColourFuser:
+        wallFactory = CondensedWalls(self.dimensions, self.rowCount)
+
+        fuser = Fuser()
+        fuser.fuse(self.createFloor(self.dimensions.floorThickness))
+        fuser.fuse(wallFactory.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness))
+
+        bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, self.dimensions.pinHeight + self.dimensions.floorThickness)
+        fuser.fuse(bases)
+        fuser.cut(holes)
+
+        return MultiColourFuser(Colour.BASE, fuser)
 
     def createHexagon(self, row: int, column: int) -> Hexagon:
         return Hexagon(self.dimensions.hexWidth, self.dimensions.getLidHeight(), self.dimensions.getHexCentre(row, column))

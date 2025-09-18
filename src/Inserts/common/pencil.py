@@ -13,11 +13,16 @@ class Pencil:
         self.start = start
         self.location = start
 
+    def checkDestination(self, destination: Vector) -> Vector:
+        tolerance = 1e-7
+        return self.start if (destination - self.start).Length < tolerance else destination
+
+
     def arcWithRadius(self, radius: float, centreAngle: float, arcDegrees: float):
         centre = shiftVector(self.location, radius, centreAngle)
         degreesDestinationFromCentre = ((arcDegrees + centreAngle + 180) % 360)
         degreesMiddleFromCentre = ((arcDegrees / 2 + centreAngle + 180) % 360)
-        destination = shiftVector(centre, radius, degreesDestinationFromCentre)
+        destination = self.checkDestination(shiftVector(centre, radius, degreesDestinationFromCentre))
         middle = shiftVector(centre, radius, degreesMiddleFromCentre)
         self.curves.append(Part.Arc(self.location, middle, destination))
         self.location = destination
@@ -26,6 +31,7 @@ class Pencil:
     # create arc with specific destination and angle measure
     def arcTo(self, absDestination: Vector, angle: float):
         # Calculate chord (straight line distance between start and end)
+        absDestination = self.checkDestination(absDestination)
         chord = absDestination - self.location
         chordMidpoint = (self.location + absDestination) / 2
         
@@ -47,6 +53,7 @@ class Pencil:
         return self.arcTo(destination + self.location, angle)
 
     def jumpTo(self, absDestination: Vector):
+        absDestination = self.checkDestination(absDestination)
         self.curves.append(Part.LineSegment(self.location, absDestination))
         self.location = absDestination
         return self
@@ -58,7 +65,7 @@ class Pencil:
         return self.jumpTo(destination + self.start)
 
     def draw(self, length: float, angle: float):
-        destination = shiftVector(self.location, length, angle)
+        destination = self.checkDestination(shiftVector(self.location, length, angle))
         self.curves.append(Part.LineSegment(self.location, destination))
         self.location = destination
         return self
