@@ -341,6 +341,9 @@ class Images:
 
         return self.putOnHex(multiFuser, tileColour)
 
+    def createEmpty(self, tileColour: Colour) -> MultiColourFuser:
+        return self.putOnHex(MultiColourFuser(), tileColour)
+
     def putOnHex(self, fuser: MultiColourFuser, colour: Colour) -> MultiColourFuser:
         fuser.fuseUnique(colour, self.createHex())
 
@@ -352,6 +355,7 @@ class Images:
 
     def createTile(self, number) -> MultiColourFuser:
         match number:
+            case None: return self.createEmpty(Colour.BASE)
             case 3: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createSharpTown, HexTileManifestEdges.S)
             case 4: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createStraightTown, HexTileManifestEdges.S)
             case 5: return self.createSingleCity(Colour.YELLOW, None, None, HexTileManifestEdges.S, HexTileManifestEdges.SE)

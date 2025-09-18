@@ -53,7 +53,7 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 # fuser.show(50)
 
 
-fuser = insert1822PNW.createTileBoard(document, 9, 9, 9, 9)
+fuser = insert1822PNW.createTileBoard(document, None, None, None, None)
 # fuser = insert1822PNW.createYellowTileBoard(document)
 # fuser = insert1822PNW.createGreenTileBoard(document)
 # fuser = insert1822PNW.createBrownTileBoard(document)

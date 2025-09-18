@@ -23,6 +23,7 @@ class GridDimensions:
     shortWallCoefficient: float
     pinRadius: float
     pinHeight: float
+    hexRecessCoefficient: float
     floorThickness: float
     ceilingThickness: float
     adjacentDistance: float # distance between horizontally adjacent tiles
@@ -74,23 +75,23 @@ class CondensedWalls:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
-    def createWallTip(self, pencil: Pencil, angle: float, shortFirst: bool, shortEndCoefficient: float, thickness: float):
+    def createWallTip(self, pencil: Pencil, angle: float, shortFirst: bool, shortEndCoefficient: float, thickness: float, curveRadius: float):
         side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
         shortTipLength = side * shortEndCoefficient
         longTipLength = shortTipLength + thickness * tan(radians(30))
 
         if shortFirst:
             pencil.draw(shortTipLength, angle)
-            pencil.draw(thickness - self.dimensions.pinRadius, angle + 90)
-            pencil.arcWithRadius(self.dimensions.pinRadius, angle + 180, 90)
-            pencil.draw(longTipLength - self.dimensions.pinRadius, angle + 180)
+            pencil.draw(thickness - curveRadius, angle + 90)
+            pencil.arcWithRadius(curveRadius, angle + 180, 90)
+            pencil.draw(longTipLength - curveRadius, angle + 180)
         else:
-            pencil.draw(longTipLength - self.dimensions.pinRadius, angle)
-            pencil.arcWithRadius(self.dimensions.pinRadius, angle + 90, 90)
-            pencil.draw(thickness - self.dimensions.pinRadius, angle + 90)
+            pencil.draw(longTipLength - curveRadius, angle)
+            pencil.arcWithRadius(curveRadius, angle + 90, 90)
+            pencil.draw(thickness - curveRadius, angle + 90)
             pencil.draw(shortTipLength, angle + 180)
 
-    def createCustomWall(self, row: int, column: int, top: bool, segmentCount: int, shortEndCoefficient: float, thickness: float, height: float) -> Part.Solid:
+    def createCustomWall(self, row: int, column: int, top: bool, segmentCount: int, shortEndCoefficient: float, thickness: float, height: float, curveRadius: float = None) -> Part.Solid:
         side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
         pencil = Pencil()
         nextAngle = -120
@@ -99,14 +100,14 @@ class CondensedWalls:
             pencil.draw(side, nextAngle)
             nextAngle = 180 - nextAngle
 
-        self.createWallTip(pencil, nextAngle, segmentCount % 2 == 0, shortEndCoefficient, thickness)
+        self.createWallTip(pencil, nextAngle, segmentCount % 2 == 0, shortEndCoefficient, thickness, curveRadius or self.dimensions.pinRadius)
 
         nextAngle = -nextAngle
         for i in range(segmentCount):
             pencil.draw(side, nextAngle)
             nextAngle = 180 - nextAngle
 
-        self.createWallTip(pencil, 120, False, shortEndCoefficient, thickness)
+        self.createWallTip(pencil, 120, False, shortEndCoefficient, thickness, curveRadius or self.dimensions.pinRadius)
 
         wall = pencil.extrude(height)
 
@@ -125,13 +126,35 @@ class CondensedWalls:
 
         for row in range(self.rowCount - 1):
             top = row % 2 == 0
-            fuser.fuse(self.createCustomWall(row if top else row + 1, 0, top, 3, 0.3, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createCustomWall(row if top else row + 1, 0, top, 3, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
 
         for column in range(2):
-            fuser.fuse(self.createCustomWall(0, column, False, 0, 0.3, self.dimensions.pinWidth, height))
-            fuser.fuse(self.createCustomWall(self.rowCount - 1, column, True, 0, 0.3, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createCustomWall(0, column, False, 0, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createCustomWall(self.rowCount - 1, column, True, 0, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
 
         fuser.fuse(self.createDividerWalls(height))
+
+        return fuser
+
+    def createAntiWalls(self, height: float) -> Fuser:
+        fuser = Fuser()
+
+        thickness = self.dimensions.pinWidth * self.dimensions.hexRecessCoefficient
+        curveRadius = min(self.dimensions.pinRadius, thickness - self.dimensions.pinWidth)
+        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
+        shortTipCoefficient = 1 - self.dimensions.shortWallCoefficient - self.dimensions.pinWidth * tan(radians(30)) / side
+
+        for row in range(self.rowCount - 1):
+            if row % 2 == 0:
+                fuser.fuse(self.createCustomWall(row + 1, -1, False, 0, shortTipCoefficient, thickness, height, curveRadius))
+                fuser.fuse(self.createCustomWall(row, 2, True, 0, shortTipCoefficient, thickness, height, curveRadius))
+            else:
+                fuser.fuse(self.createCustomWall(row, -1, True, 0, shortTipCoefficient, thickness, height, curveRadius))
+                fuser.fuse(self.createCustomWall(row + 1, 2, False, 0, shortTipCoefficient, thickness, height, curveRadius))
+
+        for column in range(3):
+            fuser.fuse(self.createCustomWall(-1, column - 1, True, 0, shortTipCoefficient, thickness, height, curveRadius))
+            fuser.fuse(self.createCustomWall(self.rowCount, column, False, 0, shortTipCoefficient, thickness, height, curveRadius))
 
         return fuser
 
@@ -218,13 +241,6 @@ class CondensedBoard:
 
         return fuser
 
-    def createWalls(self, colourWalls: Colour, height: float, magnetsTop: bool = None, magnetHeight: float = None) -> (MultiColourFuser, Part.Solid):
-        wallFactory = CondensedWalls(self.dimensions, self.rowCount)
-
-        fuser = wallFactory.createWalls(height)
-
-        return fuser
-
     def createBoard(self) -> MultiColourFuser:
         wallFactory = CondensedWalls(self.dimensions, self.rowCount)
 
@@ -233,8 +249,10 @@ class CondensedBoard:
         fuser.fuse(wallFactory.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness))
 
         bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, self.dimensions.pinHeight + self.dimensions.floorThickness)
-        fuser.fuse(bases)
-        fuser.cut(holes)
+        # fuser.fuse(bases)
+        # fuser.cut(holes)
+
+        fuser.cut(wallFactory.createAntiWalls(self.dimensions.pinHeight + self.dimensions.floorThickness))
 
         return MultiColourFuser(Colour.BASE, fuser)
 

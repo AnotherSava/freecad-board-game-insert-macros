@@ -21,9 +21,11 @@ from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diame
 gridDimensions = GridDimensions(
     hexWidth=28,
     pinWidth=3.5,
-    shortWallCoefficient=0.4,
+    shortWallCoefficient=0.35,
     pinRadius=1,
-    pinHeight=10,
+    # pinHeight=10,
+    pinHeight=1,
+    hexRecessCoefficient=1.1,
     floorThickness=0.8,
     ceilingThickness=0.8,
     adjacentDistance=1.2,
