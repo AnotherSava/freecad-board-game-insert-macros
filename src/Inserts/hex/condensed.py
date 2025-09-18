@@ -20,7 +20,7 @@ from dataclasses import dataclass
 class GridDimensions:
     hexWidth: float
     pinWidth: float
-    pinLength: float
+    shortWallCoefficient: float
     pinRadius: float
     pinHeight: float
     floorThickness: float
@@ -79,9 +79,16 @@ class CondensedWalls:
         shortTipLength = side * shortEndCoefficient
         longTipLength = shortTipLength + thickness * tan(radians(30))
 
-        pencil.draw(shortTipLength if shortFirst else longTipLength, angle)
-        pencil.draw(thickness, angle + 90)
-        pencil.draw(longTipLength if shortFirst else shortTipLength, angle + 180)
+        if shortFirst:
+            pencil.draw(shortTipLength, angle)
+            pencil.draw(thickness - self.dimensions.pinRadius, angle + 90)
+            pencil.arcWithRadius(self.dimensions.pinRadius, angle + 180, 90)
+            pencil.draw(longTipLength - self.dimensions.pinRadius, angle + 180)
+        else:
+            pencil.draw(longTipLength - self.dimensions.pinRadius, angle)
+            pencil.arcWithRadius(self.dimensions.pinRadius, angle + 90, 90)
+            pencil.draw(thickness - self.dimensions.pinRadius, angle + 90)
+            pencil.draw(shortTipLength, angle + 180)
 
     def createCustomWall(self, row: int, column: int, top: bool, segmentCount: int, shortEndCoefficient: float, thickness: float, height: float) -> Part.Solid:
         side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
