@@ -15,8 +15,8 @@ class HexTileEdges(IntEnum):
     E = 0
     NE = 60
 
-    def getUnitVector(self) -> Vector:
-        return createVector(1, self.value)
+    def getUnitVector(self, length = 1) -> Vector:
+        return createVector(length, self.value)
 
     def getNextCounterClockWise(self, count: int = 1) -> 'HexTileEdges':
         return HexTileEdges((self.value + 60 * count) % 360)

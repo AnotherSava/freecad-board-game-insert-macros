@@ -7,7 +7,7 @@ from FreeCAD import Vector
 from Inserts.common import magnets
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.geometry import createWire
+from Inserts.common.geometry import createWire, createVector
 from Inserts.common.hexagon import Hexagon, HexagonConfiguration
 from Inserts.common.hexes import createRoundedHexTile
 from Inserts.common.magnets import MagnetDetails, getWidestRadius
@@ -20,8 +20,12 @@ from dataclasses import dataclass
 class GridDimensions:
     hexWidth: float
     pinWidth: float
-    shortWallCoefficient: float
+    wallTipLengthCoefficient: float
+    wallTipWidthCoefficient: float
     pinRadius: float
+    hexRadius: float
+    shallowEdgeAngle: float
+    shorterSideMultiplier: float
     pinHeight: float
     hexRecessCoefficient: float
     floorThickness: float
@@ -62,7 +66,7 @@ class GridDimensions:
         return self.ceilingThickness + self.magnetHeightCeiling
 
     def getMagnetHoleLocation(self, row: int, column: int, magnetDiameter: float) -> Vector:
-        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToOuterPinAngle() - getWidestRadius(magnetDiameter, self.thinnestWall) / cos(radians(30)))
+        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 * self.wallTipWidthCoefficient + self.hexWidth) - getWidestRadius(magnetDiameter, self.thinnestWall / 2) / cos(radians(30)))
         if (row + column) % 2 == 0: # magnet is on the bottom of the hex
             hexCentre = self.getHexCentre(row, math.floor(column / 2))
             return hexCentre - hexCentreToHoleUp
@@ -75,48 +79,51 @@ class CondensedWalls:
         self.dimensions = dimensions
         self.rowCount = rowCount
 
-    def createWallTip(self, pencil: Pencil, angle: float, shortFirst: bool, shortEndCoefficient: float, thickness: float, curveRadius: float):
-        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
-        shortTipLength = side * shortEndCoefficient
-        longTipLength = shortTipLength + thickness * tan(radians(30))
-
+    def createWallTip(self, pencil: Pencil, nextAngle: float, shortFirst: bool, thickness: float, wallTipWidthCoefficient: float, curveRadius: float):
         if shortFirst:
-            pencil.draw(shortTipLength, angle)
-            pencil.draw(thickness - curveRadius, angle + 90)
-            pencil.arcWithRadius(curveRadius, angle + 180, 90)
-            pencil.draw(longTipLength - curveRadius, angle + 180)
+            pencil.draw(thickness * wallTipWidthCoefficient - curveRadius, nextAngle)
+            pencil.arcWithRadius(curveRadius, nextAngle + 90, 90)
         else:
-            pencil.draw(longTipLength - curveRadius, angle)
-            pencil.arcWithRadius(curveRadius, angle + 90, 90)
-            pencil.draw(thickness - curveRadius, angle + 90)
-            pencil.draw(shortTipLength, angle + 180)
+            pencil.arcWithRadius(curveRadius, nextAngle, 90)
+            pencil.draw(thickness * wallTipWidthCoefficient - curveRadius, nextAngle)
 
-    def createCustomWall(self, row: int, column: int, top: bool, segmentCount: int, shortEndCoefficient: float, thickness: float, height: float, curveRadius: float = None) -> Part.Solid:
+        return nextAngle + 90
+
+    def drawZigZag(self, pencil: Pencil, nextAngle: float, *sides: float) -> float:
+        for side in sides:
+            pencil.draw(side, nextAngle)
+            nextAngle = 180 - nextAngle
+        return nextAngle
+
+    def createWall(self, row: int, column: int, top: bool, full: bool, height: float) -> Part.Solid:
         side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
-        pencil = Pencil()
-        nextAngle = -120
+        shorterSideDelta = self.dimensions.pinWidth * (1 - self.dimensions.wallTipWidthCoefficient) / cos(radians(30))
+        shortTipLength = side * self.dimensions.wallTipLengthCoefficient
+        longTipLength = shortTipLength + self.dimensions.pinWidth * self.dimensions.wallTipWidthCoefficient * tan(radians(30)) - self.dimensions.pinRadius
+        longerTipLength = shortTipLength + self.dimensions.pinWidth * tan(radians(30)) - self.dimensions.pinRadius + shorterSideDelta * sin(radians(30))
 
-        for i in range(segmentCount):
-            pencil.draw(side, nextAngle)
-            nextAngle = 180 - nextAngle
+        pencil = Pencil(createVector(shortTipLength, 120))
 
-        self.createWallTip(pencil, nextAngle, segmentCount % 2 == 0, shortEndCoefficient, thickness, curveRadius or self.dimensions.pinRadius)
+        if full:
+            nextAngle = self.drawZigZag(pencil, -60, shortTipLength, side, side, side - shorterSideDelta, longerTipLength)
+        else:
+            nextAngle = self.drawZigZag(pencil, -60, shortTipLength, shortTipLength)
 
-        nextAngle = -nextAngle
-        for i in range(segmentCount):
-            pencil.draw(side, nextAngle)
-            nextAngle = 180 - nextAngle
+        nextAngle = self.createWallTip(pencil, 270 - nextAngle, not full, self.dimensions.pinWidth, self.dimensions.wallTipWidthCoefficient, self.dimensions.pinRadius)
 
-        self.createWallTip(pencil, 120, False, shortEndCoefficient, thickness, curveRadius or self.dimensions.pinRadius)
+        if full:
+            self.drawZigZag(pencil, nextAngle, shortTipLength, side, side, side - shorterSideDelta, longerTipLength)
+        else:
+            self.drawZigZag(pencil, nextAngle , longTipLength, longTipLength)
+
+        self.createWallTip(pencil, -150, False, self.dimensions.pinWidth, self.dimensions.wallTipWidthCoefficient, self.dimensions.pinRadius)
 
         wall = pencil.extrude(height)
 
         if not top:
             wall = wall.mirror(Vector(), Vector(0, 1, 0)) # invert X axis
-            wall.translate(Vector(0, -self.dimensions.getDistanceFromHexCentreToHexCorner()))
-        else:
-            wall.translate(Vector(0, self.dimensions.getDistanceFromHexCentreToHexCorner()))
 
+        wall.translate(Vector(0, self.dimensions.getDistanceFromHexCentreToHexCorner() * (1 if top else -1)))
         wall.translate(self.dimensions.getHexCentre(row, column))
 
         return wall
@@ -126,35 +133,13 @@ class CondensedWalls:
 
         for row in range(self.rowCount - 1):
             top = row % 2 == 0
-            fuser.fuse(self.createCustomWall(row if top else row + 1, 0, top, 3, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createWall(row if top else row + 1, 0, top, True, height))
 
         for column in range(2):
-            fuser.fuse(self.createCustomWall(0, column, False, 0, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
-            fuser.fuse(self.createCustomWall(self.rowCount - 1, column, True, 0, self.dimensions.shortWallCoefficient, self.dimensions.pinWidth, height))
+            fuser.fuse(self.createWall(0, column, False, False, height))
+            fuser.fuse(self.createWall(self.rowCount - 1, column, True, False, height))
 
         fuser.fuse(self.createDividerWalls(height))
-
-        return fuser
-
-    def createAntiWalls(self, height: float) -> Fuser:
-        fuser = Fuser()
-
-        thickness = self.dimensions.pinWidth * self.dimensions.hexRecessCoefficient
-        curveRadius = min(self.dimensions.pinRadius, thickness - self.dimensions.pinWidth)
-        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
-        shortTipCoefficient = 1 - self.dimensions.shortWallCoefficient - self.dimensions.pinWidth * tan(radians(30)) / side
-
-        for row in range(self.rowCount - 1):
-            if row % 2 == 0:
-                fuser.fuse(self.createCustomWall(row + 1, -1, False, 0, shortTipCoefficient, thickness, height, curveRadius))
-                fuser.fuse(self.createCustomWall(row, 2, True, 0, shortTipCoefficient, thickness, height, curveRadius))
-            else:
-                fuser.fuse(self.createCustomWall(row, -1, True, 0, shortTipCoefficient, thickness, height, curveRadius))
-                fuser.fuse(self.createCustomWall(row + 1, 2, False, 0, shortTipCoefficient, thickness, height, curveRadius))
-
-        for column in range(3):
-            fuser.fuse(self.createCustomWall(-1, column - 1, True, 0, shortTipCoefficient, thickness, height, curveRadius))
-            fuser.fuse(self.createCustomWall(self.rowCount, column, False, 0, shortTipCoefficient, thickness, height, curveRadius))
 
         return fuser
 
@@ -212,7 +197,7 @@ class CondensedBoard:
         magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 1, magnetDiameter)))
         magnetDetails.append(MagnetDetails(self.dimensions.getMagnetHoleLocation(self.rowCount, 3, magnetDiameter)))
 
-        return magnets.createMagnetHolders(magnetDiameter, magnetHeight, magnetOnTop, baseHeight, self.dimensions.thinnestWall, magnetDetails)
+        return magnets.createMagnetHolders(magnetDiameter, magnetHeight, magnetOnTop, baseHeight, self.dimensions.thinnestWall / 2, magnetDetails)
 
     def chooseRoundedVertices(self, column: int, row: int, rowCount: int):
         if column == 0:
@@ -237,7 +222,7 @@ class CondensedBoard:
             for j in range(2):
                 shallowEdges = [] if straightEdges else [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
                 roundedVertices = self.chooseRoundedVertices(j, i, self.rowCount)
-                fuser.fuse(createRoundedHexTile(self.dimensions.hexWidth, floorThickness, self.dimensions.getHexCentre(i, j), self.dimensions.pinRadius, roundedVertices, shallowEdges))
+                fuser.fuse(createRoundedHexTile(self.dimensions.hexWidth, floorThickness, self.dimensions.getHexCentre(i, j), self.dimensions.hexRadius, self.dimensions.shallowEdgeAngle, self.dimensions.shorterSideMultiplier, roundedVertices, shallowEdges))
 
         return fuser
 
@@ -249,10 +234,8 @@ class CondensedBoard:
         fuser.fuse(wallFactory.createWalls(self.dimensions.pinHeight + self.dimensions.floorThickness))
 
         bases, holes = self.createMagnetHoles(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, self.dimensions.pinHeight + self.dimensions.floorThickness)
-        # fuser.fuse(bases)
-        # fuser.cut(holes)
-
-        fuser.cut(wallFactory.createAntiWalls(self.dimensions.pinHeight + self.dimensions.floorThickness))
+        fuser.fuse(bases)
+        fuser.cut(holes)
 
         return MultiColourFuser(Colour.BASE, fuser)
 

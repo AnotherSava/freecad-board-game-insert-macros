@@ -1,55 +1,71 @@
-from math import cos, radians, tan
+from math import radians, tan, sin, cos
 
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import shiftVector
+from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 
 
-def createRoundedHexTileWire(tileLength: float, roundingRadius: float = 0, roundedVertices: list[HexTileVertices] = [], shallowEdges: list[HexTileEdges] = []) -> Part.Wire:
-    # Align arc shortening distance with one in createPinRayWire
-    arcOffset = roundingRadius / 2 / cos(radians(30))
+def drawAroundVertex(pencil: Pencil, vertex: HexTileVertices, roundingRadius: float, isRound: bool):
+    roundingDelta = roundingRadius * tan(radians(30))
 
-    edges = list()
+    if isRound:
+        pencil.arcWithRadius(roundingRadius, vertex.getEdgeClockWise().value + 90, 60)
+    else:
+        pencil.draw(roundingDelta, vertex.getEdgeClockWise().value)
+        pencil.draw(roundingDelta, vertex.getEdgeCounterClockWise().value)
 
-    # Create shortened edges with arc connections
-    for currentVertex in HexTileVertices.iterate():
-        nextVertex = currentVertex.getNextCounterClockWise()
+def createRoundedHexTile(tileLength: float, tileHeight: float, centre: Vector, roundingRadius: float, shallowEdgeAngle: float, shorterSideMultiplier: float, roundedVertices: list[HexTileVertices], shallowEdges: list[HexTileEdges]) -> Part.Solid:
+    roundingDelta = roundingRadius * tan(radians(30))
+    pencil = Pencil(centre + HexTileVertices.N.getVector(tileLength))
 
-        # Shorten the edge by arcOffset at each end if needed
-        v1 = currentVertex.getVector(tileLength)
-        edgeCounterClockWise = currentVertex.getEdgeCounterClockWise()
-        if currentVertex in roundedVertices:
-            v1 += edgeCounterClockWise.getUnitVector() * arcOffset
+    for vertex in [HexTileVertices.NW, HexTileVertices.SE]:
+        sideEdge = vertex.getEdgeCounterClockWise()
+        side = tileLength * tan(radians(30))
+        edgeLength = side - roundingDelta * 2
 
-        v2 = nextVertex.getVector(tileLength)
-        if nextVertex in roundedVertices:
-            v2 -= edgeCounterClockWise.getUnitVector() * arcOffset
+        if sideEdge in shallowEdges:
+            edgeLength = side * shorterSideMultiplier + (tileLength / cos(radians(30))) * (1 - shorterSideMultiplier) - roundingDelta * 2
+            side *= shorterSideMultiplier
 
-        # Add edge
-        if edgeCounterClockWise in shallowEdges:
-            arcMid = shiftVector((v2 + v1) / 2, (v2 - v1).Length / 2 * tan(radians(15)), edgeCounterClockWise.value + 90)
-            edges.append(Part.Arc(v1, arcMid, v2).toShape())
+        pencil.draw(side - roundingDelta, vertex.getEdgeClockWise().value)
+        drawAroundVertex(pencil, vertex, roundingRadius, vertex in roundedVertices)
+
+        if sideEdge not in shallowEdges:
+            pencil.draw(edgeLength, sideEdge.value)
         else:
-            edges.append(Part.LineSegment(v1, v2).toShape())
+            r2 = (edgeLength / 2) / sin(radians(shallowEdgeAngle / 2)) - roundingRadius
+            pencil.arcWithRadius(roundingRadius, sideEdge.value + 90, shallowEdgeAngle / 2)
+            pencil.arcWithRadius(r2, sideEdge.value - 90 + shallowEdgeAngle / 2, -shallowEdgeAngle)
+            pencil.arcWithRadius(roundingRadius, sideEdge.value + 90 - shallowEdgeAngle / 2, shallowEdgeAngle / 2)
 
-        if nextVertex in roundedVertices:
-            # Add arc at the corner connecting this edge to the next
-            arcStart = v2
-            arcEnd = nextVertex.getVector(tileLength) + nextVertex.getEdgeCounterClockWise().getUnitVector() * arcOffset
-            arcMidOffset = roundingRadius * (1 - cos(radians(30)))
-            arcMid = (arcStart + arcEnd) / 2 + nextVertex.getUnitVector() * arcMidOffset
+        nextVertex = vertex.getNextCounterClockWise()
+        drawAroundVertex(pencil, nextVertex, roundingRadius, nextVertex in roundedVertices)
+        pencil.draw(side - roundingDelta, nextVertex.getEdgeCounterClockWise().value)
 
-            edges.append(Part.Arc(arcStart, arcMid, arcEnd).toShape())
+    return pencil.extrude(tileHeight)
 
-    return Part.Wire(edges)
+def createRoundedHexTile2(tileLength: float, tileHeight: float, centre: Vector, roundingRadius: float, shallowEdgeAngle: float, roundedVertices: list[HexTileVertices], shallowEdges: list[HexTileEdges]) -> Part.Solid:
+    side = tileLength * tan(radians(30))
+    roundingDelta = roundingRadius * tan(radians(30))
+    pencil = Pencil(centre + HexTileVertices.N.getVector(tileLength))
+    for vertex in [HexTileVertices.NW, HexTileVertices.SE]:
+        pencil.draw(side - roundingDelta, vertex.getEdgeClockWise().value)
+        drawAroundVertex(pencil, vertex, roundingRadius, vertex in roundedVertices)
 
-def createCustomRoundedHexTile(tileLength: float, extrudeVector: Vector, centre: Vector = Vector(), roundingRadius: float = 0, roundedVertices: list[HexTileVertices] = [], shallowEdges: list[HexTileEdges] = []) -> Part.Solid:
-    wire = createRoundedHexTileWire(tileLength, roundingRadius, roundedVertices, shallowEdges)
-    wire.translate(centre)
-    face = Part.Face(wire)
-    return face.extrude(extrudeVector)
+        sideEdge = vertex.getEdgeCounterClockWise()
 
-def createRoundedHexTile(tileLength: float, tileHeight: float, centre: Vector = Vector(), roundingRadius: float = 0, roundedVertices: list[HexTileVertices] = [], shallowEdges: list[HexTileEdges] = []) -> Part.Solid:
-    return createCustomRoundedHexTile(tileLength, Vector(0, 0, tileHeight), centre, roundingRadius, roundedVertices, shallowEdges)
+        if sideEdge not in shallowEdges:
+            pencil.draw(side - roundingDelta * 2, sideEdge.value)
+        else:
+            r2 = (side / 2 - roundingDelta) / sin(radians(shallowEdgeAngle / 2)) - roundingRadius
+            pencil.arcWithRadius(roundingRadius, sideEdge.value + 90, shallowEdgeAngle / 2)
+            pencil.arcWithRadius(r2, sideEdge.value - 90 + shallowEdgeAngle / 2, -shallowEdgeAngle)
+            pencil.arcWithRadius(roundingRadius, sideEdge.value + 90 - shallowEdgeAngle / 2, shallowEdgeAngle / 2)
+
+        nextVertex = vertex.getNextCounterClockWise()
+        drawAroundVertex(pencil, nextVertex, roundingRadius, nextVertex in roundedVertices)
+        pencil.draw(side - roundingDelta, nextVertex.getEdgeCounterClockWise().value)
+
+    return pencil.extrude(tileHeight)
