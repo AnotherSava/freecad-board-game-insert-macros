@@ -367,7 +367,7 @@ class Images:
             case 57: return self.createSingleCity(Colour.YELLOW, None, None, HexTileManifestEdges.S, HexTileManifestEdges.N)
 
             case 14: return self.createDoubleCity(Colour.GREEN, None, None, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
-            case 15: return self.createDoubleCity(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
+            case 15: return self.createDoubleCity(Colour.GREEN, None, None, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 80: return self.createRays(Colour.GREEN, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 143: return self.createTown(Colour.GREEN, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 81: return self.createRays(Colour.GREEN, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
@@ -376,7 +376,7 @@ class Images:
             case 141: return self.createTown(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.S, HexTileManifestEdges.NE)
             case 83: return self.createRays(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.S, HexTileManifestEdges.NW)
             case 142: return self.createTown(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.S, HexTileManifestEdges.NW)
-            case 619: return self.createDoubleCity(Colour.GREEN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.NE, HexTileManifestEdges.S)
+            case 619: return self.createDoubleCity(Colour.GREEN, None, None, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.NE, HexTileManifestEdges.S)
             case 207: return self.createDoubleCity(Colour.GREEN, 'Y', -20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 208: return self.createDoubleCity(Colour.GREEN, 'Y', -20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
             case 405: return self.createDoubleCity(Colour.GREEN, 'T', 160, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.SE)

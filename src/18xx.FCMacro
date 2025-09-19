@@ -5,6 +5,8 @@ from FreeCAD import Vector
 import importlib
 
 import constants
+from Inserts.common.colours import Colour
+
 importlib.reload(constants) # force FreeCAD to reload modules
 
 from Inserts.common import geometry, cylinders, pencil, fuser, colours, smartbox, magnets, labels, smartsolid, primitives, hexes, hexagon
@@ -54,8 +56,8 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 # fuser.show(50)
 
 
-# fuser = insert1822PNW.createTileBoard(document, None, None, None, None, None, None, None, None)
-fuser = insert1822PNW.createYellowTileBoard(document)
+fuserBox = insert1822PNW.createTileBoard(document, *[None]*16)
+# fuser = insert1822PNW.createYellowTileBoard(document)
 # fuser = insert1822PNW.createGreenTileBoard(document)
 # fuser = insert1822PNW.createBrownTileBoard(document)
 # fuser = insert1822PNW.createMarkerBox(document)
@@ -64,17 +66,24 @@ fuser = insert1822PNW.createYellowTileBoard(document)
 # fuser = insert1822PNW.createCubedBox()
 # fuser = insert1822PNW.createCubedBoxLid()
 # fuser = insert1822PNW.createCompanyBox()
-# fuser = insert1822PNW.createTileBoardLid()
+fuser = insert1822PNW.createTileBoardLid()
 
 # fuser = insert1822PNW.createImage(document)
 
-# a = fuser.getResult()
-# b = fuser.getResult()
-# b.translate(Vector(54.84, 0, 0))
-#
-# f =Part.show(a.fuse(b))
-# f.ViewObject.Transparency = 20
-fuser.show(0)
+a = fuser.translate(Vector(0, 0, 11.2)).getResult()
+b = a.copy()
+b.translate(Vector(54.84, 0, 0))
+
+f =Part.show(a)
+f.ViewObject.Transparency = 20
+f.ViewObject.ShapeColor = Colour.GREEN.decode()
+
+f =Part.show(b)
+f.ViewObject.Transparency = 20
+f.ViewObject.ShapeColor = Colour.BLUE.decode()
+# fuser.show(0)
+
+fuserBox.show(80)
 
 
 # insert1822PNW.createBoard()

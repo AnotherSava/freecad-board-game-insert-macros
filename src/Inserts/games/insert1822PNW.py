@@ -20,29 +20,29 @@ from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diame
 
 gridDimensions = GridDimensions(
     hexWidth=28,
-    pinWidth=4.5,
-    wallTipLengthCoefficient=0.348,
-    wallTipWidthCoefficient=0.685,
+    pinWidth=3.9,
+    wallTipLengthCoefficient=0.357,
+    wallTipWidthCoefficient=0.635,
     pinRadius=1,
     hexRadius=3,
     shallowEdgeAngle=60,
     shorterSideMultiplier=0.928,
     pinHeight=10,
-    # hexRecessCoefficient=1.25,
-    hexRecessCoefficient=1,
-    floorThickness=0.8,
+    floorThickness=1.2,
     ceilingThickness=0.8,
     adjacentDistance=nozzleSize * 2,
     magnetDiameterFloor=magnet2Diameter + 0.15,
     magnetDiameter=magnet3Diameter + 0.05,
-    magnetHeightFloor=magnet3x3height,
+    # magnetDiameter=magnet2Diameter + 0.1,
+    magnetHeightFloor=magnet2x3height,
     magnetHeightCeiling=magnet2x3height,
-    thinnestWall=nozzleSize * 2,
+    magnetBaseWall=nozzleSize*2,
     maxRowsPerMagnet=2,
     lidHoleAngle=45,
     lidHoleMultiplier=0.85,
     lidInfillThickness=nozzleSize*1.1,
-    lidExternalWallThickness=2
+    lidExternalWallThickness=2,
+    lidSideDelta=2.3
 )
 
 hexImageDimensions = HexImageDimensions(
