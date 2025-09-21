@@ -3,7 +3,7 @@ from math import floor
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser, fuseAll
+from Inserts.common.fuser import Fuser, fuseAll, getElement
 from enum import IntEnum
 
 
@@ -68,8 +68,8 @@ class MultiColourFuser:
 
         return self
 
-    def fuseUnique(self, colour: Colour, solid: Part.Solid) -> 'MultiColourFuser':
-        uniqueSolid = solid.copy()
+    def fuseUnique(self, colour: Colour, element) -> 'MultiColourFuser':
+        uniqueSolid = getElement(element).copy()
         for fuser in self.fuserByColour.values():
             uniqueSolid = uniqueSolid.cut(fuser.solid)
 

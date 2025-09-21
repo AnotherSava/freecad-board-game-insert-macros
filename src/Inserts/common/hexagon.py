@@ -6,6 +6,7 @@ import Part
 from Inserts.common import fuser
 from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import createWire, extrudeWire, createVector
+from Inserts.common.hexes import getHexSide
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 from dataclasses import dataclass
 
@@ -65,7 +66,7 @@ class Hexagon:
         self.centre = centre
 
         self.rayLength = length / 2 / cos(radians(30))
-        self.side = length * tan(radians(30))
+        self.side = getHexSide(length)
 
     def createSolid(self, multiplier: float = 1) -> Part.Solid:
         wire = createWire(*(self.getVertex(vertex, multiplier) for vertex in HexTileVertices.iterate()))

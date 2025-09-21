@@ -2,6 +2,7 @@ import math
 from math import tan, cos, sin, radians, pi
 
 from Inserts.common import geometry
+from Inserts.common.hexes import getHexSide
 from Inserts.common.labels import Labels
 from Inserts.common.smartbox import SmartBox
 from typing import Callable
@@ -122,17 +123,6 @@ class BaseElementFactory:
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
-    def createRay(self, edge: HexTileEdges) -> Part.Solid:
-        pencil = Pencil()
-
-        rayLength = self.dimensions.hexWidth / 2 + self.dimensions.railWidth / 2 * tan(radians(30))
-
-        pencil.right(rayLength)
-        pencil.down(self.dimensions.railWidth)
-        pencil.left(rayLength)
-
-        return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), edge)
-
     def createCircle(self, radius: float) -> Part.Solid:
         return Part.makeCylinder(radius, self.dimensions.imageHeight)
 
@@ -246,10 +236,44 @@ class BaseElementFactory:
     def createTown(self) -> Part.Solid:
         return self.createCircle(self.dimensions.townDiameter / 2)
 
-    def createRays(self, *edges: HexTileEdges) -> Part.Solid:
-        return fuseAll(self.createRay(edge) for edge in edges)
+    def createSpikes(self, delta: float, *edges: HexTileEdges) -> Part.Solid:
+        spikeLength = self.dimensions.hexWidth / 3.8
 
-    def rotate30(self, fuser: Fuser) -> Fuser:
+        pencil = Pencil(Vector(0, delta))
+        pencil.jump(Vector(spikeLength * (1 + 2 * delta / self.dimensions.railWidth), -self.dimensions.railWidth / 2 - delta))
+        pencil.jumpFromStart(Vector(0, -self.dimensions.railWidth - delta * 2))
+        solidSpike = pencil.extrude(self.dimensions.imageHeight)
+
+        return fuseAll(self.alignToEdge(solidSpike.copy(), edge) for edge in edges)
+
+    def createRays(self, *edges: HexTileEdges) -> Part.Solid:
+        rayLength = self.dimensions.hexWidth / 2 + self.dimensions.railWidth / 2 * tan(radians(30))
+
+        pencil = Pencil()
+        pencil.right(rayLength)
+        pencil.down(self.dimensions.railWidth)
+        pencil.left(rayLength)
+        solidRay = pencil.extrude(self.dimensions.imageHeight)
+
+        return fuseAll(self.alignToEdge(solidRay.copy(), edge) for edge in edges)
+
+    def createValueBox(self, offsetMultiplier: float, delta: float) -> SmartBox:
+        length = getHexSide(self.dimensions.hexWidth) * 0.45
+        width = getHexSide(self.dimensions.hexWidth) * 0.3
+        offset = (length - self.dimensions.lineWidth) * offsetMultiplier
+        return SmartBox(length - delta * 2, width - delta * 2, self.dimensions.imageHeight).translate(delta + offset - self.dimensions.lineWidth / 2, delta - width / 2)
+
+    def createValueBoxes(self, count: int) -> MultiColourFuser:
+        fuser = MultiColourFuser()
+        for i in range(count):
+            outerBox = self.createValueBox(i - count / 2, 0)
+            innerBox = self.createValueBox(i - count / 2, self.dimensions.lineWidth)
+            fuser.fuse(Colour.GRAY, innerBox)
+            fuser.fuseUnique(Colour.BLACK, outerBox)
+
+        return self.rotate30(fuser)
+
+    def rotate30(self, fuser):
         return fuser.rotate(Vector(), Vector(0, 0, 1), -30)
 
     def createLabel(self, label: str, angle: float) -> Fuser:
@@ -318,6 +342,13 @@ class Images:
             multiFuser.fuse(Colour.BLACK, self.baseFactory.createLabel(letter, angle))
 
         return self.putOnHex(multiFuser, colour)
+
+    def createPort(self, valueBoxCount: int) -> MultiColourFuser:
+        multiFuser = self.baseFactory.createValueBoxes(valueBoxCount)
+        multiFuser.fuse(Colour.BLACK, self.baseFactory.createSpikes(0, HexTileManifestEdges.S))
+        multiFuser.fuseUnique(Colour.WHITE, self.baseFactory.createSpikes(self.dimensions.lineWidth, HexTileManifestEdges.S))
+
+        return self.putOnHex(multiFuser, Colour.BLUE)
 
     def createTown(self, colour: Colour, *edges: HexTileEdges) -> MultiColourFuser:
         return self.createLabeledTown(colour, None, None, *edges)
@@ -406,6 +437,8 @@ class Images:
             case "PNW3": return self.createLabeledTown(Colour.GRAY, "30", 25, *list(HexTileManifestEdges))
             case "PNW4": return self.createMine(False)
             case "PNW5": return self.createMine(True)
+            case "P1": return self.createPort(2)
+            case "P2": return self.createPort(3)
 
 
 

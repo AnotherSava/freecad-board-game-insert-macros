@@ -7,6 +7,9 @@ from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 
 
+def getHexSide(hexLength: float):
+    return hexLength * tan(radians(30))
+
 def drawAroundVertex(pencil: Pencil, vertex: HexTileVertices, roundingRadius: float, isRound: bool):
     roundingDelta = roundingRadius * tan(radians(30))
 
@@ -22,7 +25,7 @@ def createRoundedHexTile(tileLength: float, tileHeight: float, centre: Vector, r
 
     for vertex in [HexTileVertices.NW, HexTileVertices.SE]:
         sideEdge = vertex.getEdgeCounterClockWise()
-        side = tileLength * tan(radians(30))
+        side = getHexSide(tileLength)
         edgeLength = side - roundingDelta * 2
 
         if sideEdge in shallowEdges:
@@ -47,7 +50,7 @@ def createRoundedHexTile(tileLength: float, tileHeight: float, centre: Vector, r
     return pencil.extrude(tileHeight)
 
 def createRoundedHexTile2(tileLength: float, tileHeight: float, centre: Vector, roundingRadius: float, shallowEdgeAngle: float, roundedVertices: list[HexTileVertices], shallowEdges: list[HexTileEdges]) -> Part.Solid:
-    side = tileLength * tan(radians(30))
+    side = getHexSide(tileLength)
     roundingDelta = roundingRadius * tan(radians(30))
     pencil = Pencil(centre + HexTileVertices.N.getVector(tileLength))
     for vertex in [HexTileVertices.NW, HexTileVertices.SE]:

@@ -18,8 +18,9 @@ def fuseAll(args):
     result = None
 
     for arg in args:
-        element = getElement(arg)
-        result = element if result is None else result.fuse(element)
+        if arg is not None:
+            element = getElement(arg)
+            result = element.copy() if result is None else result.fuse(element)
 
     return result
 

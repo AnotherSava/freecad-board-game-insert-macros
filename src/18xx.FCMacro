@@ -56,8 +56,9 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 # fuser.show(50)
 
 
-fuserBox = insert1822PNW.createTileBoard(document, *[None]*16)
+# fuser = insert1822PNW.createTileBoard(document, *[None]*2, "P1", "P2")
 # fuser = insert1822PNW.createYellowTileBoard(document)
+fuser = insert1822PNW.createGrayTileBoard(document)
 # fuser = insert1822PNW.createGreenTileBoard(document)
 # fuser = insert1822PNW.createBrownTileBoard(document)
 # fuser = insert1822PNW.createMarkerBox(document)
@@ -66,24 +67,24 @@ fuserBox = insert1822PNW.createTileBoard(document, *[None]*16)
 # fuser = insert1822PNW.createCubedBox()
 # fuser = insert1822PNW.createCubedBoxLid()
 # fuser = insert1822PNW.createCompanyBox()
-fuser = insert1822PNW.createTileBoardLid()
+# fuser = insert1822PNW.createTileBoardLid()
 
 # fuser = insert1822PNW.createImage(document)
 
-a = fuser.translate(Vector(0, 0, 11.2)).getResult()
-b = a.copy()
-b.translate(Vector(54.84, 0, 0))
+# a = fuser.translate(Vector(0, 0, 11.2)).getResult()
+# b = a.copy()
+# b.translate(Vector(54.84, 0, 0))
 
-f =Part.show(a)
-f.ViewObject.Transparency = 20
-f.ViewObject.ShapeColor = Colour.GREEN.decode()
+# f =Part.show(a)
+# f.ViewObject.Transparency = 20
+# f.ViewObject.ShapeColor = Colour.GREEN.decode()
 
-f =Part.show(b)
-f.ViewObject.Transparency = 20
-f.ViewObject.ShapeColor = Colour.BLUE.decode()
-# fuser.show(0)
+# f =Part.show(b)
+# f.ViewObject.Transparency = 20
+# f.ViewObject.ShapeColor = Colour.BLUE.decode()
+fuser.show(0)
 
-fuserBox.show(80)
+# fuserBox.show(80)
 
 
 # insert1822PNW.createBoard()

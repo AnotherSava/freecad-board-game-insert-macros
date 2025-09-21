@@ -181,6 +181,9 @@ markerBoxDimensions = markerbox.Dimensions(
     # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
 )
 
+def createGrayTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
+    return createTileBoard(document, "X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")
+
 def createYellowTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
     return createTileBoard(document, 58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)
 
@@ -237,17 +240,6 @@ def createTileBoardLid() -> MultiColourFuser:
 
 # ------------------ TESTING STUFF -----------------
 
-def createTest():
-    box = SmartBox(10, 10, 7)
-    box = Part.makeBox(1, 1, 1)
-    bases, holes = magnets.createMagnetHolders(3.05, 3, True, 7, 1, [MagnetDetails(Vector(0, 0, 0), 2, 45)])
-    base = magnets.createMagnetBase(3.05, 3, True, 7, 1, MagnetDetails(Vector(0, 0, 0), 2, 180))
-
-    return MultiColourFuser(Colour.BASE, bases.cut(holes))
-    # return MultiColourFuser(Colour.BASE, base)
-    # return MultiColourFuser(Colour.BASE, box)
-
 def createImage(document: FreeCAD.Document) -> MultiColourFuser:
     imageFactory = Images(hexImageDimensions, document)
     return imageFactory.createTile("PNW5").rotate(Vector(), Vector(0, 0, 1), 30)
-
