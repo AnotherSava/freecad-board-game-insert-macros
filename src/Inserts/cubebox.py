@@ -81,7 +81,7 @@ class CubeBox:
 
         for i, x in enumerate(magnetX):
             yield MagnetDetails(Vector(x, self.dimensions.width - widestRadius))
-            yield MagnetDetails(Vector(x, widestRadius), Side.N if ramps else None, -1 if i == 0 else 1 if i == len(magnetX) - 1 else 0, 3, self.dimensions.wallThickness)
+            yield MagnetDetails(Vector(x, widestRadius), 1, None, Side.N if ramps else None, -1 if i == 0 else 1 if i == len(magnetX) - 1 else 0, 3, self.dimensions.wallThickness)
 
     def createCubesAndTokensArea(self) -> Part.Solid:
         fuser = Fuser()

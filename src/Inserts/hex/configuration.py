@@ -56,8 +56,8 @@ class HexTileVertices(IntEnum):
         return HexTileEdges((self.value + 60) % 360)
 
     # Vertex of the hexagon with a specific width
-    def getVector(self, hexWidth: float) -> Vector:
-        return hexWidth / 2 / cos(radians(30)) * self.getUnitVector()
+    def getVector(self, hexShortDiagonal: float) -> Vector:
+        return hexShortDiagonal / 2 / cos(radians(30)) * self.getUnitVector()
 
     def getNextClockWise(self) -> 'HexTileVertices':
         return HexTileVertices((self.value - 60) % 360)

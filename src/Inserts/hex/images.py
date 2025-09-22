@@ -36,7 +36,7 @@ class Hex:
 @dataclass
 class HexImageDimensions:
     imageHeight: float
-    hexWidth: float
+    hexShortDiagonal: float
     railWidth: float
     townBarWidth: float
     townBarLength: float
@@ -48,7 +48,7 @@ class HexImageDimensions:
     fontSize: float
     font: str
 
-    def __init__(self, imageHeight: float, hexWidth: float, railWidth: float,
+    def __init__(self, imageHeight: float, hexShortDiagonal: float, railWidth: float,
                  townBarWidth: float, townBarLength: float, cityDiameter: float,
                  townDiameter: float, scale: float, lineWidth: float, whiteLayerHeight: float, font: str, fontSize: float):
         self.imageHeight = imageHeight
@@ -56,7 +56,7 @@ class HexImageDimensions:
         self.font = font
         self.scale = scale
 
-        self.hexWidth = hexWidth * scale
+        self.hexShortDiagonal = hexShortDiagonal * scale
         self.railWidth = railWidth * scale
         self.townBarWidth = townBarWidth * scale
         self.townBarLength = townBarLength * scale
@@ -65,7 +65,7 @@ class HexImageDimensions:
         self.lineWidth = lineWidth * scale
         self.fontSize = fontSize * scale
 
-        self.hex = Hex(self.hexWidth, Vector(0, 0))
+        self.hex = Hex(self.hexShortDiagonal, Vector(0, 0))
 
     def getTotalHeight(self):
         return self.imageHeight + self.whiteLayerHeight
@@ -73,7 +73,7 @@ class HexImageDimensions:
     def createOutline(self) -> 'HexImageDimensions':
         return HexImageDimensions(
             imageHeight = self.imageHeight,
-            hexWidth = self.hexWidth,
+            hexShortDiagonal= self.hexShortDiagonal,
             railWidth = self.railWidth + self.lineWidth * 2,
             townBarWidth = self.townBarWidth + self.lineWidth * 2,
             townBarLength = self.townBarLength + self.lineWidth * 2,
@@ -92,34 +92,34 @@ class BaseElementFactory:
         self.labels = Labels(document, dimensions.font, dimensions.fontSize)
 
     def alignToEdge(self, solid: Part.Solid, startEdge: HexTileEdges):
-        solid.translate(Vector(-self.dimensions.hexWidth / 2, self.dimensions.railWidth / 2, 0))
+        solid.translate(Vector(-self.dimensions.hexShortDiagonal / 2, self.dimensions.railWidth / 2, 0))
         solid.rotate(Vector(0, 0), Vector(0, 0, 1), 180 + startEdge.value)
         return solid
 
     def createStraight(self, startEdge: HexTileEdges) -> Part.Solid:
         pencil = Pencil()
-        pencil.right(self.dimensions.hexWidth)
+        pencil.right(self.dimensions.hexShortDiagonal)
         pencil.down(self.dimensions.railWidth)
-        pencil.left(self.dimensions.hexWidth)
+        pencil.left(self.dimensions.hexShortDiagonal)
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
     def createStraightTown(self, startEdge: HexTileEdges) -> Part.Solid:
         pencil = Pencil()
 
-        pencil.right((self.dimensions.hexWidth - self.dimensions.townBarLength) / 2)
+        pencil.right((self.dimensions.hexShortDiagonal - self.dimensions.townBarLength) / 2)
         pencil.up((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2)
         pencil.right(self.dimensions.townBarLength)
         pencil.down((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2)
-        pencil.right((self.dimensions.hexWidth - self.dimensions.townBarLength) / 2)
+        pencil.right((self.dimensions.hexShortDiagonal - self.dimensions.townBarLength) / 2)
 
         pencil.down(self.dimensions.railWidth)
 
-        pencil.left((self.dimensions.hexWidth - self.dimensions.townBarLength) / 2)
+        pencil.left((self.dimensions.hexShortDiagonal - self.dimensions.townBarLength) / 2)
         pencil.down((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2)
         pencil.left(self.dimensions.townBarLength)
         pencil.up((self.dimensions.townBarWidth - self.dimensions.railWidth) / 2)
-        pencil.left((self.dimensions.hexWidth - self.dimensions.townBarLength) / 2)
+        pencil.left((self.dimensions.hexShortDiagonal - self.dimensions.townBarLength) / 2)
 
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
@@ -165,9 +165,9 @@ class BaseElementFactory:
         return self.alignToEdge(pencil.extrude(self.dimensions.imageHeight), startEdge)
 
     def createHalfRing(self, delta: float) -> Fuser:
-        outer = self.createCircle(self.dimensions.hexWidth / 3 + self.dimensions.railWidth / 2 + delta)
-        inner = self.createCircle(self.dimensions.hexWidth / 3 - self.dimensions.railWidth / 2 - delta)
-        box = SmartBox(self.dimensions.hexWidth, self.dimensions.hexWidth * 2, self.dimensions.imageHeight).translate(-self.dimensions.railWidth / 2, -self.dimensions.hexWidth)
+        outer = self.createCircle(self.dimensions.hexShortDiagonal / 3 + self.dimensions.railWidth / 2 + delta)
+        inner = self.createCircle(self.dimensions.hexShortDiagonal / 3 - self.dimensions.railWidth / 2 - delta)
+        box = SmartBox(self.dimensions.hexShortDiagonal, self.dimensions.hexShortDiagonal * 2, self.dimensions.imageHeight).translate(-self.dimensions.railWidth / 2, -self.dimensions.hexShortDiagonal)
         return self.rotate30(Fuser(outer.cut(inner).cut(box.solid)))
 
     def createGentle(self, startEdge: HexTileEdges) -> Part.Solid:
@@ -237,7 +237,7 @@ class BaseElementFactory:
         return self.createCircle(self.dimensions.townDiameter / 2)
 
     def createSpikes(self, delta: float, *edges: HexTileEdges) -> Part.Solid:
-        spikeLength = self.dimensions.hexWidth / 3.8
+        spikeLength = self.dimensions.hexShortDiagonal / 3.8
 
         pencil = Pencil(Vector(0, delta))
         pencil.jump(Vector(spikeLength * (1 + 2 * delta / self.dimensions.railWidth), -self.dimensions.railWidth / 2 - delta))
@@ -247,7 +247,7 @@ class BaseElementFactory:
         return fuseAll(self.alignToEdge(solidSpike.copy(), edge) for edge in edges)
 
     def createRays(self, *edges: HexTileEdges) -> Part.Solid:
-        rayLength = self.dimensions.hexWidth / 2 + self.dimensions.railWidth / 2 * tan(radians(30))
+        rayLength = self.dimensions.hexShortDiagonal / 2 + self.dimensions.railWidth / 2 * tan(radians(30))
 
         pencil = Pencil()
         pencil.right(rayLength)
@@ -258,8 +258,8 @@ class BaseElementFactory:
         return fuseAll(self.alignToEdge(solidRay.copy(), edge) for edge in edges)
 
     def createValueBox(self, offsetMultiplier: float, delta: float) -> SmartBox:
-        length = getHexSide(self.dimensions.hexWidth) * 0.45
-        width = getHexSide(self.dimensions.hexWidth) * 0.3
+        length = getHexSide(self.dimensions.hexShortDiagonal) * 0.45
+        width = getHexSide(self.dimensions.hexShortDiagonal) * 0.3
         offset = (length - self.dimensions.lineWidth) * offsetMultiplier
         return SmartBox(length - delta * 2, width - delta * 2, self.dimensions.imageHeight).translate(delta + offset - self.dimensions.lineWidth / 2, delta - width / 2)
 
@@ -277,11 +277,11 @@ class BaseElementFactory:
         return fuser.rotate(Vector(), Vector(0, 0, 1), -30)
 
     def createLabel(self, label: str, angle: float) -> Fuser:
-        length = self.dimensions.hexWidth / 6
-        width = self.dimensions.hexWidth / 6
+        length = self.dimensions.hexShortDiagonal / 6
+        width = self.dimensions.hexShortDiagonal / 6
         text = Fuser(self.labels.createText(label, length, width, self.dimensions.imageHeight).translate(Vector(-length / 2, -width / 2)))
 
-        return self.rotate30(text.translate(createVector(self.dimensions.hexWidth * 0.435, angle)))
+        return self.rotate30(text.translate(createVector(self.dimensions.hexShortDiagonal * 0.435, angle)))
 
 class Images:
     def __init__(self, dimensions: HexImageDimensions, document: Document):
@@ -413,7 +413,7 @@ class Images:
             case 405: return self.createDoubleCity(Colour.GREEN, 'T', 160, HexTileManifestEdges.S, HexTileManifestEdges.SW, HexTileManifestEdges.SE)
             case 622: return self.createDoubleCity(Colour.GREEN, 'Y', 20, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)
 
-            case 63: return self.createTripleCity(Colour.BROWN, None, None, *list(HexTileManifestEdges))
+            case 63: return self.createDoubleCity(Colour.BROWN, None, None, *list(HexTileManifestEdges))
             case 544: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.SE)
             case 545: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.SW, HexTileManifestEdges.S)
             case 546: return self.createRays(Colour.BROWN, HexTileManifestEdges.N, HexTileManifestEdges.NW, HexTileManifestEdges.S, HexTileManifestEdges.NE)

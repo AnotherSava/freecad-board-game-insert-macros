@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 @dataclass
 class GridDimensions:
-    hexWidth: float
+    hexShortDiagonal: float
     pinWidth: float
     wallTipLengthCoefficient: float
     wallTipWidthCoefficient: float
@@ -42,31 +42,31 @@ class GridDimensions:
     lidExternalWallThickness: float
     lidSideDelta: float # slightly reduced on sides to make it stackable even with larger magnets
 
-    def getHexSide(self, hexWidth: float = None):
-        return (hexWidth or self.hexWidth) * tan(radians(30))
+    def getHexSide(self, hexShortDiagonal: float = None):
+        return (hexShortDiagonal or self.hexShortDiagonal) * tan(radians(30))
 
     def getDistanceFromHexCentreToOuterPinAngle(self):
-        return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexWidth)
+        return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexShortDiagonal)
 
-    def getDistanceFromHexCentreToHexCorner(self, hexWidth: float = None):
-        return (hexWidth or self.hexWidth) / 2 / cos(radians(30))
+    def getDistanceFromHexCentreToHexCorner(self, hexShortDiagonal: float = None):
+        return (hexShortDiagonal or self.hexShortDiagonal) / 2 / cos(radians(30))
 
     def getCondensedDistanceY(self):
-        return (self.hexWidth + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
+        return (self.hexShortDiagonal + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
 
     def getCondensedDistanceX(self):
-        return self.hexWidth + self.adjacentDistance
+        return self.hexShortDiagonal + self.adjacentDistance
 
     def getHexCentre(self, row: int, column: int) -> Vector:
-        sameRowHexDistanceX = self.hexWidth + self.adjacentDistance
-        evenRowsShiftX = (self.hexWidth + self.adjacentDistance) / 2
+        sameRowHexDistanceX = self.hexShortDiagonal + self.adjacentDistance
+        evenRowsShiftX = (self.hexShortDiagonal + self.adjacentDistance) / 2
         return Vector(evenRowsShiftX * (row % 2) + sameRowHexDistanceX * column, row * self.getCondensedDistanceY() + self.getDistanceFromHexCentreToOuterPinAngle())
 
     def getLidHeight(self) -> float:
         return self.ceilingThickness + self.magnetHeightCeiling
 
     def getMagnetLocation(self, row: int, column: int, rowCount: int, magnetDiameter: float) -> Vector:
-        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToHexCorner(self.pinWidth * (1 + self.wallTipWidthCoefficient) + self.hexWidth) - getWidestRadius(magnetDiameter, self.magnetBaseWall) / cos(radians(30)))
+        hexCentreToHoleUp = Vector(0, self.getDistanceFromHexCentreToHexCorner(self.pinWidth * (1 + self.wallTipWidthCoefficient) + self.hexShortDiagonal) - getWidestRadius(magnetDiameter, self.magnetBaseWall) / cos(radians(30)))
 
         if 0 < row < rowCount -1:
             hexCentreToHoleUp -= Vector(2 * self.pinWidth * (1 - self.wallTipWidthCoefficient) * sin(radians(30)))
@@ -101,7 +101,7 @@ class CondensedWalls:
         return nextAngle
 
     def createWall(self, row: int, column: int, top: bool, full: bool, wallTipWidthCoefficient: float, height: float) -> Part.Solid:
-        side = self.dimensions.getHexSide(self.dimensions.hexWidth + self.dimensions.adjacentDistance)
+        side = self.dimensions.getHexSide(self.dimensions.hexShortDiagonal + self.dimensions.adjacentDistance)
         shorterSideDelta = self.dimensions.pinWidth * (1 - wallTipWidthCoefficient) / cos(radians(30))
         shortTipLength = side * self.dimensions.wallTipLengthCoefficient
         longTipLength = shortTipLength + self.dimensions.pinWidth * wallTipWidthCoefficient * tan(radians(30)) - self.dimensions.pinRadius
@@ -164,7 +164,7 @@ class CondensedWalls:
 
         for row in range(self.rowCount):
             wallDivider = self.createDividerWall(height)
-            x = self.dimensions.getCondensedDistanceX() / 2 * (row % 2) + self.dimensions.hexWidth / 2
+            x = self.dimensions.getCondensedDistanceX() / 2 * (row % 2) + self.dimensions.hexShortDiagonal / 2
             y = self.dimensions.getCondensedDistanceY() * row + self.dimensions.getDistanceFromHexCentreToOuterPinAngle() - self.dimensions.getHexSide() / 2
             wallDivider.translate(Vector(x, y))
             fuser.fuse(wallDivider)
@@ -227,7 +227,7 @@ class CondensedBoard:
             for j in range(2):
                 shallowEdges = [] if straightEdges else [HexTileEdges.W] if j == 0 else [HexTileEdges.E]
                 roundedVertices = self.chooseRoundedVertices(j, i, self.rowCount)
-                fuser.fuse(createRoundedHexTile(self.dimensions.hexWidth, floorThickness, self.dimensions.getHexCentre(i, j), self.dimensions.hexRadius, self.dimensions.shallowEdgeAngle, self.dimensions.shorterSideMultiplier, roundedVertices, shallowEdges))
+                fuser.fuse(createRoundedHexTile(self.dimensions.hexShortDiagonal, floorThickness, self.dimensions.getHexCentre(i, j), self.dimensions.hexRadius, self.dimensions.shallowEdgeAngle, self.dimensions.shorterSideMultiplier, roundedVertices, shallowEdges))
 
         return fuser
 
@@ -247,7 +247,7 @@ class CondensedBoard:
         return MultiColourFuser(Colour.BASE, fuser)
 
     def createHexagon(self, row: int, column: int) -> Hexagon:
-        return Hexagon(self.dimensions.hexWidth, self.dimensions.getLidHeight(), self.dimensions.getHexCentre(row, column))
+        return Hexagon(self.dimensions.hexShortDiagonal, self.dimensions.getLidHeight(), self.dimensions.getHexCentre(row, column))
 
     def createHexagonConfiguration(self, row: int, column: int) -> HexagonConfiguration:
         config = HexagonConfiguration(self.dimensions.getLidHeight(), self.dimensions.lidInfillThickness, self.dimensions.lidExternalWallThickness).withRays().withHiddenWalls(self.dimensions.adjacentDistance / 2)
@@ -255,7 +255,7 @@ class CondensedBoard:
         adjacentDistanceDelta = self.dimensions.adjacentDistance / 2 / cos(radians(30))
         pinWidthDelta = (self.dimensions.pinWidth - self.dimensions.adjacentDistance / 2) / cos(radians(30))
 
-        offsetDistance = (self.dimensions.shorterSideMultiplier - 1) * self.dimensions.hexWidth / 2 - self.dimensions.lidSideDelta
+        offsetDistance = (self.dimensions.shorterSideMultiplier - 1) * self.dimensions.hexShortDiagonal / 2 - self.dimensions.lidSideDelta
         offsetDistanceY = 2 * offsetDistance * tan(radians(30)) - adjacentDistanceDelta
         offsetDiagonal = - offsetDistance / cos(radians(30))
 

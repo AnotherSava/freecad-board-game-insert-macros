@@ -1,19 +1,14 @@
-from math import radians, sin
-
-import Part
 import Draft
+import Part
 from FreeCAD import Vector, Document
 
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
 from Inserts.common.fuser import Fuser, fuse, fuseAll
-from Inserts.common.geometry import alignWithin, extrudeWire
 from Inserts.common.labels import Labels
 from Inserts.common.magnets import createCornerLocations, createMagnetHolders, createMagnetHoles, MagnetDetails
-from Inserts.common.pencil import Pencil
 from Inserts.common.primitives import createTaperedBox
 from Inserts.common.smartbox import SmartBox
-from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
 
 

@@ -65,10 +65,8 @@ class Pencil:
         return self.jumpTo(destination + self.start)
 
     def draw(self, length: float, angle: float):
-        destination = self.checkDestination(shiftVector(self.location, length, angle))
-        self.curves.append(Part.LineSegment(self.location, destination))
-        self.location = destination
-        return self
+        absDestination = shiftVector(self.location, length, angle)
+        return self.jumpTo(absDestination)
 
     def up(self, length: float):
         return self.draw(length, 0)
@@ -98,7 +96,7 @@ class Pencil:
         return solid
 
     def createWire(self):
-        curves = self.curves
+        curves = self.curves.copy()
         if self.location != self.start:
             curves.append(Part.LineSegment(self.location, self.start))
 

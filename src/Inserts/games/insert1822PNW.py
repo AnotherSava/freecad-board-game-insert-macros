@@ -19,7 +19,7 @@ from Inserts.markerbox import MarkerBox
 from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
 
 gridDimensions = GridDimensions(
-    hexWidth=28,
+    hexShortDiagonal=28,
     pinWidth=3.9,
     wallTipLengthCoefficient=0.357,
     wallTipWidthCoefficient=0.635,
@@ -47,7 +47,7 @@ gridDimensions = GridDimensions(
 
 hexImageDimensions = HexImageDimensions(
     imageHeight=0.32,
-    hexWidth=28,
+    hexShortDiagonal=28,
     railWidth=2,
     townBarWidth=5,
     townBarLength=1.5,
