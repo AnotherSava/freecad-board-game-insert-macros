@@ -242,4 +242,4 @@ def createTileBoardLid() -> MultiColourFuser:
 
 def createImage(document: FreeCAD.Document) -> MultiColourFuser:
     imageFactory = Images(hexImageDimensions, document)
-    return imageFactory.createTile("PNW5").rotate(Vector(), Vector(0, 0, 1), 30)
+    return imageFactory.createTile("X11").rotate(Vector(), Vector(0, 0, 1), 30)

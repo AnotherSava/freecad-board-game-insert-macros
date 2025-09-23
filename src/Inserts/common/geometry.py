@@ -24,7 +24,7 @@ def shiftVector(vector: Vector, length: float, angle: float) -> Vector:
     return vector + createVector(length, angle)
 
 def createWire(*points) -> Wire:
-    return Wire(Part.makeLine(points[i], points[(i + 1) % len(points)]) for i in range(len(points)))
+    return Wire([Part.makeLine(points[i], points[(i + 1) % len(points)]) for i in range(len(points))])
 
 def extrudeWire(wire: Wire, height: float) -> Solid:
     face = Face(wire)

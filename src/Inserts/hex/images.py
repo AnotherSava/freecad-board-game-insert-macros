@@ -207,8 +207,7 @@ class BaseElementFactory:
         r = self.dimensions.cityDiameter / 2 + delta
         l = self.dimensions.cityDiameter + self.dimensions.lineWidth * 2
 
-        pencil = Pencil()
-        pencil.draw(d, 60)
+        pencil = Pencil(createVector(d, 60))
         pencil.up(r)
         pencil.right(l)
         pencil.down(r)
@@ -273,8 +272,8 @@ class BaseElementFactory:
 
         return self.rotate30(fuser)
 
-    def rotate30(self, fuser):
-        return fuser.rotate(Vector(), Vector(0, 0, 1), -30)
+    def rotate30(self, element):
+        return element.rotate(Vector(), Vector(0, 0, 1), -30)
 
     def createLabel(self, label: str, angle: float) -> Fuser:
         length = self.dimensions.hexShortDiagonal / 6
@@ -289,10 +288,11 @@ class Images:
         self.baseFactory = BaseElementFactory(dimensions, document)
         self.outlineFactory = BaseElementFactory(dimensions.createOutline(), document)
 
-    def createHex(self, height: float = None) -> Part.Solid:
+    def createHex(self, height: float = None, shiftZ: float = 0) -> Part.Solid:
         wire = createWire(*(self.dimensions.hex.getVector(x) for x in HexTileVertices.iterate()))
         face = Part.Face(wire)
         solid = face.extrude(Vector(0, 0, height or self.dimensions.imageHeight))
+        solid.translate(Vector(0, 0, shiftZ))
         return solid
 
     def createMine(self, upgraded) -> MultiColourFuser:
@@ -326,7 +326,7 @@ class Images:
         multiFuser.fuseUnique(Colour.WHITE, outerCityMethod(self.baseFactory, self.dimensions.lineWidth * 2))
 
         if letter is not None:
-            multiFuser.fuse(Colour.BLACK, self.baseFactory.createLabel(letter, angle))
+            multiFuser.replace(Colour.BLACK, self.baseFactory.createLabel(letter, angle))
 
         return self.putOnHex(multiFuser, colour)
 
@@ -376,11 +376,8 @@ class Images:
         return self.putOnHex(MultiColourFuser(), tileColour)
 
     def putOnHex(self, fuser: MultiColourFuser, colour: Colour) -> MultiColourFuser:
+        fuser.fuseUnique(Colour.WHITE, self.createHex(self.dimensions.whiteLayerHeight, -self.dimensions.whiteLayerHeight))
         fuser.fuseUnique(colour, self.createHex())
-
-        hexSolid = self.createHex(self.dimensions.whiteLayerHeight)
-        hexSolid.translate(Vector(0, 0, -self.dimensions.whiteLayerHeight))
-        fuser.fuse(Colour.WHITE, hexSolid)
 
         return fuser
 
