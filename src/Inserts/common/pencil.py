@@ -85,9 +85,10 @@ class Pencil:
         face = Part.Face(wire)
         return face.extrude(Vector(0, 0, height))
 
-    def extrudeX(self, height: float):
+    def extrudeX(self, height: float, transpose: Vector = Vector()):
         solid = self.extrude(height)
         solid.rotate(self.start, Vector(1, 0, 0), 90).rotate(self.start, Vector(0, 0, 1), 90)
+        solid.translate(transpose)
         return solid
 
     def extrudeY(self, height: float):

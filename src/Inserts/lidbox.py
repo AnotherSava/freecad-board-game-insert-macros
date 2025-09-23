@@ -43,7 +43,7 @@ class LidDimensions:
     def getSideWallThickness(self):
         return self.lidWidthWallThickness if self.lidSlideInDirection in [Side.E, Side.W] else self.lidLengthWallThickness
 
-    def getLidBackSideCenter(self):
+    def getLidFrontSideCenter(self):
         match self.lidSlideInDirection:
             case Side.S:
                 return Vector(self.getSideWallThickness() + self.getLidBackSideLength() / 2, 0)
@@ -141,7 +141,7 @@ class SlidingLidBox(SmartBox):
         return self.orientBasedOnLid(pencil.extrudeX(self.dimensions.lid.supportThickness))
 
     def orientBasedOnLid(self, solid: Part.Solid) -> Part.Solid:
-        return solid.rotate(Vector(), Vector(0, 0, 1), self.dimensions.lid.lidSlideInDirection.value).translate(self.dimensions.lid.getLidBackSideCenter())
+        return solid.rotate(Vector(), Vector(0, 0, 1), self.dimensions.lid.lidSlideInDirection.value + 180).translate(self.dimensions.lid.getLidFrontSideCenter())
 
     def createLid(self):
         fuser = Fuser(self.createBottomLid())
@@ -179,12 +179,11 @@ class SlidingLidBox(SmartBox):
         return pencil.extrude(self.dimensions.lid.aboveLidHeight)
 
     def createTopLidBevel(self):
-        # bevelBackSideLength = self.dimensions.lid.getLidBackSideLength()
         bevelBackSideLength = self.dimensions.lid.getLidFrontSideLength() * (1 - self.dimensions.lid.aboveLidSlideCoefficient) + self.dimensions.lid.getLidBackSideLength() * self.dimensions.lid.aboveLidSlideCoefficient
 
         sideLength = self.dimensions.lid.getLidSlidingLength() * (1 - self.dimensions.lid.aboveLidSlideCoefficient)
-        pencil = Pencil(Vector(-bevelBackSideLength / 2, 0, self.dimensions.lid.lidHeight))
+        pencil = Pencil()
         pencil.up(self.dimensions.lid.aboveLidHeight)
         pencil.right(sideLength)
         pencil.arc(Vector(self.dimensions.wallThickness, -self.dimensions.lid.aboveLidHeight), 10)
-        return pencil.extrudeX(bevelBackSideLength)
+        return pencil.extrudeX(bevelBackSideLength, Vector(-bevelBackSideLength / 2, 0, self.dimensions.lid.lidHeight))
