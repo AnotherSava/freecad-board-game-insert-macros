@@ -59,7 +59,7 @@ class CubeBox:
         fuser.fuse(Colour.BASE, magnetBases.cut(magnetHoles))
         fuser.fuse(Colour.BASE, handle)
 
-        return fuser.translate(Vector(0, 0, 40))
+        return fuser.mirrorZ()
 
     def createCubeSpace(self, width: float) -> Part.Solid:
         pencil = Pencil()

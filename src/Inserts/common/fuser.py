@@ -51,3 +51,17 @@ class Fuser:
         if self.solid:
             self.solid.rotate(centre, axis, angle)
         return self
+
+    def mirrorX(self):
+        self.solid = self.solid.mirror(Vector(), Vector(1, 0, 0))  # invert X axis
+        return self
+
+    def mirrorY(self):
+        self.solid = self.solid.mirror(Vector(), Vector(0, 1, 0))  # invert Y axis
+        return self
+
+    # wall = wall.mirror(Vector(), Vector(0, 1, 0)) # invert Y axis
+
+    def mirrorZ(self):
+        self.solid = self.solid.mirror(Vector(), Vector(0, 0, 1))  # invert Y axis
+        return self

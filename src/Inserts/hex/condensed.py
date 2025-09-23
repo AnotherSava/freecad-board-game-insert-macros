@@ -100,7 +100,7 @@ class CondensedWalls:
             nextAngle = 180 - nextAngle
         return nextAngle
 
-    def createWall(self, row: int, column: int, top: bool, full: bool, wallTipWidthCoefficient: float, height: float) -> Part.Solid:
+    def createWall(self, row: int, column: int, top: bool, full: bool, wallTipWidthCoefficient: float, height: float) -> Fuser:
         side = self.dimensions.getHexSide(self.dimensions.hexShortDiagonal + self.dimensions.adjacentDistance)
         shorterSideDelta = self.dimensions.pinWidth * (1 - wallTipWidthCoefficient) / cos(radians(30))
         shortTipLength = side * self.dimensions.wallTipLengthCoefficient
@@ -123,15 +123,15 @@ class CondensedWalls:
 
         self.createWallTip(pencil, -150, False, self.dimensions.pinWidth, wallTipWidthCoefficient, self.dimensions.pinRadius)
 
-        wall = pencil.extrude(height)
+        fuser = Fuser(pencil.extrude(height))
 
-        if not top:
-            wall = wall.mirror(Vector(), Vector(0, 1, 0)) # invert X axis
+        if top:
+            fuser.translate(Vector(0, self.dimensions.getDistanceFromHexCentreToHexCorner()))
+        else:
+            fuser.mirrorY()
+            fuser.translate(Vector(0, -self.dimensions.getDistanceFromHexCentreToHexCorner()))
 
-        wall.translate(Vector(0, self.dimensions.getDistanceFromHexCentreToHexCorner() * (1 if top else -1)))
-        wall.translate(self.dimensions.getHexCentre(row, column))
-
-        return wall
+        return fuser.translate(self.dimensions.getHexCentre(row, column))
 
     def createWalls(self, height: float) -> Fuser:
         fuser = Fuser()
@@ -362,4 +362,4 @@ class CondensedBoard:
         fuser.fuse(Colour.BASE, bases)
         fuser.cut(holes)
 
-        return fuser
+        return fuser.mirrorZ()

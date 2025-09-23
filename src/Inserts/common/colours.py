@@ -104,6 +104,21 @@ class MultiColourFuser:
 
         return self
 
+    def mirrorX(self):
+        for fuser in self.fuserByColour.values():
+            fuser.mirrorX()
+        return self
+
+    def mirrorY(self):
+        for fuser in self.fuserByColour.values():
+            fuser.mirrorY()
+        return self
+
+    def mirrorZ(self):
+        for fuser in self.fuserByColour.values():
+            fuser.mirrorZ()
+        return self
+
     def getResult(self):
         return fuseAll(fuser.solid for fuser in self.fuserByColour.values())
 

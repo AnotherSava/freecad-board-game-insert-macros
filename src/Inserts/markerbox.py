@@ -120,7 +120,7 @@ class MarkerBox:
         fuser.fuse(Colour.BASE, recessOuter.cut(recessInner))
         fuser.fuse(Colour.BASE, handle.common(recessOuter))
 
-        return fuser.translate(Vector(0, 0, self.dimensions.height))
+        return fuser.mirrorZ()
 
     def createMarkersAndStations(self):
         paddingVerticalCentre = (self.dimensions.width - self.dimensions.padding * 2 - self.dimensions.stations.diameter * 2 - self.dimensions.markers.diameter * 2) * 3 / 10
