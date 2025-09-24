@@ -37,7 +37,7 @@ class Colour(IntEnum):
         return redInt / 255.0, greenInt / 255.0, blueInt / 255.0
     
     def getName(self) -> str:
-        return self.name.lower()
+        return self.name.lower().replace("_", "-")
 
 class MultiColourFuser:
     def __init__(self, colour: Colour = None, element = None):

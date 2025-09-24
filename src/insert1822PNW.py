@@ -1,15 +1,17 @@
 import math
 
 import FreeCAD
-import Part
 from FreeCAD import Vector
+
+from common.freecad import reloadProjectModules
+
+reloadProjectModules()
 
 from Inserts import company, cardbox, cubebox, markerbox
 from Inserts.cardbox import CardBox
-from Inserts.common import magnets
-from Inserts.common.colours import Colour, MultiColourFuser
-from Inserts.common.magnets import MagnetDetails
-from Inserts.common.smartbox import Side, SmartBox
+from Inserts.common.colours import MultiColourFuser
+from Inserts.common.export import ExportObject, Exporter
+from Inserts.common.smartbox import Side
 from Inserts.company import CompanyBox, CylinderObjectSet
 from Inserts.cubebox import CubeBox
 from Inserts.hex.condensed import CondensedBoard, GridDimensions
@@ -238,8 +240,36 @@ def createTileBoardLid() -> MultiColourFuser:
     condensedBoard = CondensedBoard(gridDimensions, 8)
     return condensedBoard.createLid()
 
-# ------------------ TESTING STUFF -----------------
 
-def createImage(document: FreeCAD.Document) -> MultiColourFuser:
-    imageFactory = Images(hexImageDimensions, document)
-    return imageFactory.createTile("X11").rotate(Vector(), Vector(0, 0, 1), 30)
+document = FreeCAD.newDocument('18PNW-rev')
+
+exportItems = [
+    ExportObject("tile-tray1-x2", lambda: createYellowTileBoard(document)),
+    ExportObject("tile-tray4", lambda: createGrayTileBoard(document)),
+    ExportObject("tile-tray2", lambda: createGreenTileBoard(document)),
+    ExportObject("tile-tray3", lambda: createBrownTileBoard(document)),
+    ExportObject("marker-box", lambda: createMarkerBox(document)),
+    ExportObject("marker-lid", lambda: createMarkerBoxLid(document)),
+    ExportObject("card-box", lambda: createCardBox()),
+    ExportObject("cube-box", lambda: createCubedBox()),
+    ExportObject("cube-lid", lambda: createCubedBoxLid()),
+    ExportObject("company-box-x7", lambda: createCompanyBox()),
+    ExportObject("tile-lid-x5", lambda: createTileBoardLid())
+]
+
+exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
+
+
+# FreeCAD.Gui.activeDocument().activeView().viewIsometric()
+# FreeCAD.Gui.activeDocument().activeView().viewLeft()
+# FreeCAD.Gui.activeDocument().activeView().viewFront()
+FreeCAD.Gui.activeDocument().activeView().viewTop()
+# FreeCAD.Gui.activeDocument().activeView().viewBottom()
+# FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
+
+
+exporter.export()
+# exporter.show()
+
+
+
