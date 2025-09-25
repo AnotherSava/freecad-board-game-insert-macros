@@ -60,6 +60,13 @@ class MultiColourFuser:
 
         return self
 
+    def replaceAll(self, *args: 'MultiColourFuser') -> 'MultiColourFuser':
+        for arg in args:
+            for (colour, fuser) in arg.fuserByColour.items():
+                self.replace(colour, fuser)
+
+        return self
+
     def fuseColour(self, colour: Colour, *args: 'MultiColourFuser') -> 'MultiColourFuser':
         for arg in args:
             elem = arg.fuserByColour[colour]
@@ -79,9 +86,9 @@ class MultiColourFuser:
         self.cut(element)
         return self.fuse(colour, element)
 
-    def common(self, solid: Part.Solid) -> 'MultiColourFuser':
+    def common(self, element) -> 'MultiColourFuser':
         for fuser in self.fuserByColour.values():
-            fuser.common(solid)
+            fuser.common(element)
 
         return self
 
@@ -120,10 +127,10 @@ class MultiColourFuser:
         return self
 
     def getResult(self):
-        return fuseAll(fuser.solid for fuser in self.fuserByColour.values())
+        return fuseAll(self.fuserByColour.values())
 
     def show(self, transparency: int = 0):
         for (color, fuser) in self.fuserByColour.items():
-            feature = Part.show(fuser.solid, color.getName())
+            feature = Part.show(fuser.solid.removeSplitter(), color.getName())
             feature.ViewObject.ShapeColor = color.decode()
             feature.ViewObject.Transparency = transparency

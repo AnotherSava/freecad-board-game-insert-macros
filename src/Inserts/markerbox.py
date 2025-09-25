@@ -7,6 +7,7 @@ from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, Dis
 from Inserts.common.fuser import Fuser, fuse, fuseAll
 from Inserts.common.labels import Labels
 from Inserts.common.magnets import createCornerLocations, createMagnetHolders, createMagnetHoles, MagnetDetails
+from Inserts.common.meshlid import MeshLidDimensions, MeshLid
 from Inserts.common.primitives import createTaperedBox
 from Inserts.common.smartbox import SmartBox
 from dataclasses import dataclass
@@ -14,10 +15,10 @@ from dataclasses import dataclass
 
 @dataclass
 class Dimensions:
+    lid: MeshLidDimensions
     length: float
     width: float
     height: float
-    lidHeight: float
     ligHeightDelta: float
     floorHeight: float
     padding: float
@@ -25,11 +26,7 @@ class Dimensions:
     magnetDiameter: float
     magnetHeightBox: float
     magnetCountBox: int
-    magnetHeightLid: float
     magnetCountLid: int
-    wallThickness: float
-    handleRadius: float
-    lidRecessWallThickness: float
 
     stations: CylinderObjectSet
     markers: CylinderObjectSet
@@ -37,8 +34,12 @@ class Dimensions:
     numberFontSize: float
     numberFont: str
 
-    def getLidHandleHeight(self):
-        return self.lidHeight - self.getLidInnerHeight()
+    def __post_init__(self):
+        self.lid.length = self.length
+        self.lid.width = self.width
+        self.lid.innerSpaceHeight = self.getLidInnerHeight()
+        self.lid.delta = self.delta
+        self.lid.magnetDiameter = self.magnetDiameter
 
     def getLidInnerHeight(self):
         return self.floorHeight + self.getMaxObjectsHeight() - self.height + self.ligHeightDelta
@@ -85,42 +86,12 @@ class MarkerBox:
 
         return fuser
 
-    def createRoundedRecess(self, length: float, width: float, height):
-        taperBox = createTaperedBox(self.dimensions.length / 6, self.dimensions.width / 2, self.dimensions.getLidHandleHeight(), self.dimensions.length / 4, self.dimensions.width * 2 / 3)
-
-        leftSide = Vector(-length / 2, -width / 2, height)
-        rightSide = Vector(length / 2, -width / 2, height)
-        roundedRecessShape = [Part.Arc(leftSide, Vector(0, -width / 2), rightSide).toShape(), Part.makeLine(rightSide, leftSide)]
-        solid = Part.Face(Part.Wire(roundedRecessShape)).extrude(Vector(0, width, 0)).common(taperBox)
-        return solid.translate(Vector(self.dimensions.length / 2, self.dimensions.width / 2, self.dimensions.lidHeight - height))
-
     def createLid(self) -> MultiColourFuser:
-        lid = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.lidHeight)
+        lid = MeshLid(self.dimensions.lid)
 
-        lidInnerSpace = SmartBox(lid.length - self.dimensions.wallThickness * 2, lid.width - self.dimensions.wallThickness * 2, self.dimensions.getLidInnerHeight())
-        lidInnerSpace.translate(self.dimensions.wallThickness, self.dimensions.wallThickness, 0)
+        magnetDetails = self.createMagnetLocations(self.dimensions.magnetCountLid, lid.z)
 
-        lidMagnetLocations = self.createMagnetLocations(self.dimensions.magnetCountLid, lid.z)
-        magnetBases, magnetHoles = createMagnetHolders(self.dimensions.magnetDiameter, self.dimensions.magnetHeightLid, False, self.dimensions.lidHeight, self.dimensions.delta, lidMagnetLocations)
-
-        recessOuter = self.createRoundedRecess(self.dimensions.length / 4, self.dimensions.width * 2 / 3, self.dimensions.getLidHandleHeight())
-
-        recessInner = self.createRoundedRecess(self.dimensions.length / 4 - self.dimensions.lidRecessWallThickness * 2, self.dimensions.width * 2 / 3, self.dimensions.getLidHandleHeight() - self.dimensions.lidRecessWallThickness)
-
-        roundedHandle = Part.makeCylinder(self.dimensions.handleRadius, lid.width, Vector(lid.length / 2, 0, lid.height - self.dimensions.handleRadius / 3 * 2), Vector(0, 1, 0))
-        roundedHandle = roundedHandle.common(lid.solid)
-
-        handle = createTaperedBox(self.dimensions.wallThickness, self.dimensions.width, self.dimensions.lidHeight, self.dimensions.wallThickness, self.dimensions.width)
-        handle.translate(Vector(self.dimensions.length / 2, self.dimensions.width / 2, 0))
-        handle = handle.fuse(roundedHandle)
-
-        fuser = MultiColourFuser(Colour.WALLED_MESH, lid)
-        fuser.cut(magnetBases, lidInnerSpace, recessOuter)
-        fuser.fuse(Colour.BASE, magnetBases.cut(magnetHoles).fuse(recessOuter).cut(recessInner))
-        fuser.fuse(Colour.BASE, recessOuter.cut(recessInner))
-        fuser.fuse(Colour.BASE, handle.common(recessOuter))
-
-        return fuser.mirrorZ()
+        return lid.createLid(magnetDetails)
 
     def createMarkersAndStations(self):
         paddingVerticalCentre = (self.dimensions.width - self.dimensions.padding * 2 - self.dimensions.stations.diameter * 2 - self.dimensions.markers.diameter * 2) * 3 / 10

@@ -1,12 +1,18 @@
 import math
+import sys
 
 import FreeCAD
 from FreeCAD import Vector
 
+import importlib
+from common import freecad
+
+importlib.reload(freecad)
 from common.freecad import reloadProjectModules
 
 reloadProjectModules()
 
+from Inserts.common.meshlid import MeshLidDimensions
 from Inserts import company, cardbox, cubebox, markerbox
 from Inserts.cardbox import CardBox
 from Inserts.common.colours import MultiColourFuser
@@ -19,6 +25,8 @@ from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
 from Inserts.markerbox import MarkerBox
 from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
+
+reloadProjectModules()
 
 gridDimensions = GridDimensions(
     hexShortDiagonal=28,
@@ -157,22 +165,31 @@ cubeBoxDimensions = cubebox.CubeBoxDimensions(
 markerBoxHeight = 7.2
 
 markerBoxDimensions = markerbox.Dimensions(
+    lid = MeshLidDimensions(
+        handleRadius=2,
+        wallThickness = nozzleSize * 3,
+        # gridThickness = nozzleSize * 2,
+        gridThickness = nozzleSize * 1.2,
+        height = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
+        magnetHeight = magnet3x3height,
+        fillCorners = True,
+        minimalMeshHeight = nozzleSize * 4,
+        hexCountLength = 24,
+        # maxGridShortDiagonal = 7
+        # maxGridShortDiagonal = 20
+    ),
+
     length=174,
     width=92,
     height=markerBoxHeight,
-    lidHeight = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
     ligHeightDelta = 1.6,
-    lidRecessWallThickness = 0.4,
     floorHeight=0.8,
     padding=2,
     delta=nozzleSize * 2,
-    magnetDiameter=magnet3Diameter,
+    magnetDiameter=magnet3Diameter + 0.1,
     magnetHeightBox=magnet3x3height,
     magnetCountBox=2,
-    magnetHeightLid=magnet3x3height,
     magnetCountLid=2,
-    wallThickness=1.2,
-    handleRadius=2,
 
     markers=CylinderObjectSet(diameter=13.4, height=7),
     stations=CylinderObjectSet(diameter=10.95, height=10.3),
@@ -180,84 +197,29 @@ markerBoxDimensions = markerbox.Dimensions(
     fontHeight=0.4,
     numberFontSize=4,
     numberFont="C:/Windows/Fonts/arialbd.ttf",
-    # numberFont="C:/Windows/Fonts/osifont-lgpl3fe.ttf"
 )
-
-def createGrayTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
-    return createTileBoard(document, "X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")
-
-def createYellowTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
-    return createTileBoard(document, 58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)
-
-def createGreenTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
-    return createTileBoard(document, 144, 143, 142, 141, 15, 15, 619, 619, 80, 14, 81, 81, 82, 82, 83, 83)
-
-def createBrownTileBoard(document: FreeCAD.Document) -> MultiColourFuser:
-    return createTileBoard(document, "X5", "X10", 769, 767, 63, 768, 611, 611, 546, 545, 544, 544, 622, 405, 207, 208)
-
-def createTileBoard(document : FreeCAD.Document, *tileNumbers) -> MultiColourFuser:
-    assert len(tileNumbers) % 2 == 0
-
-    condensedBoard = CondensedBoard(gridDimensions, int(len(tileNumbers) / 2))
-    imageFactory = Images(hexImageDimensions, document)
-    boardFuser = condensedBoard.createBoard().translate(Vector(0, 0, hexImageDimensions.imageHeight - gridDimensions.floorThickness))
-
-    multiFuser = MultiColourFuser()
-
-    for index, number in enumerate(tileNumbers):
-        multiFuser.fuseAll(imageFactory.createTile(number).translate(gridDimensions.getHexCentre(math.floor(index / 2), index % 2)))
-
-    multiFuser.common(boardFuser.getResult())
-    boardFuser.cut(multiFuser.getResult())
-    multiFuser.fuseAll(boardFuser)
-    return multiFuser
-
-def createCompanyBox() -> MultiColourFuser:
-    companyBox = CompanyBox(companyBoxDimensions)
-    return companyBox.createBox()
-
-def createMarkerBox(document: FreeCAD.Document) -> MultiColourFuser:
-    markerBox = MarkerBox(markerBoxDimensions, document)
-    return markerBox.createBox()
-
-def createMarkerBoxLid(document: FreeCAD.Document) -> MultiColourFuser:
-    markerBox = MarkerBox(markerBoxDimensions, document)
-    return markerBox.createLid()
-
-def createCardBox() -> MultiColourFuser:
-    cardBox = CardBox(cardBoxDimensions)
-    return cardBox.createBox()
-
-def createCubedBox() -> MultiColourFuser:
-    cubeBox = CubeBox(cubeBoxDimensions)
-    return cubeBox.createBox()
-
-def createCubedBoxLid() -> MultiColourFuser:
-    cubeBox = CubeBox(cubeBoxDimensions)
-    return cubeBox.createLid()
-
-def createTileBoardLid() -> MultiColourFuser:
-    condensedBoard = CondensedBoard(gridDimensions, 8)
-    return condensedBoard.createLid()
-
 
 document = FreeCAD.newDocument('18PNW-rev')
 
+def createTileBoard(*tileNumbers) -> MultiColourFuser:
+    imageFactory = Images(hexImageDimensions, document)
+    condensedBoard = CondensedBoard(gridDimensions, int(len(tileNumbers) / 2))
+    return condensedBoard.createTileBoard(imageFactory, *tileNumbers)
+
 exportItems = [
-    ExportObject("tile-tray1-x2", lambda: createYellowTileBoard(document)),
-    ExportObject("tile-tray4", lambda: createGrayTileBoard(document)),
-    ExportObject("tile-tray2", lambda: createGreenTileBoard(document)),
-    ExportObject("tile-tray3", lambda: createBrownTileBoard(document)),
-    ExportObject("marker-box", lambda: createMarkerBox(document)),
-    ExportObject("marker-lid", lambda: createMarkerBoxLid(document)),
-    ExportObject("card-box", lambda: createCardBox()),
-    ExportObject("cube-box", lambda: createCubedBox()),
-    ExportObject("cube-lid", lambda: createCubedBoxLid()),
-    ExportObject("company-box-x7", lambda: createCompanyBox()),
-    ExportObject("tile-lid-x5", lambda: createTileBoardLid())
+    # ExportObject("tile-tray1-x2", lambda: createTileBoard(58, 3, 4, 4, 6, 5, 7, 57, 8, 8, 8, 8, 9, 9, 9, 9)),
+    # ExportObject("tile-tray2", lambda: createTileBoard(144, 143, 142, 141, 15, 15, 619, 619, 80, 14, 81, 81, 82, 82, 83, 83)),
+    # ExportObject("tile-tray3", lambda: createTileBoard("X5", "X10", 769, 767, 63, 768, 611, 611, 546, 545, 544, 544, 622, 405, 207, 208)),
+    # ExportObject("tile-tray4", lambda: createTileBoard("X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")),
+    # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
+    ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
+    # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
+    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
+    # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]
 
-exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
 
 
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
@@ -268,8 +230,7 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 # FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 
-exporter.export()
+exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
+
 # exporter.show()
-
-
-
+exporter.export()

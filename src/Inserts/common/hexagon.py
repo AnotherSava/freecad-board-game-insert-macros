@@ -6,7 +6,7 @@ import Part
 from Inserts.common import fuser
 from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import createWire, extrudeWire, createVector
-from Inserts.common.hexes import getHexSide
+from Inserts.common.hexes import getHexSide, getDiagonal
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 from dataclasses import dataclass
 
@@ -25,8 +25,7 @@ class HexagonRayConfiguration:
 
 
 class HexagonConfiguration:
-    def __init__(self, height: float, rayThickness: float = None, wallThickness: float = None):
-        self.height = height
+    def __init__(self, rayThickness: float = None, wallThickness: float = None):
         self.rayThickness = rayThickness
         self.wallThickness = wallThickness
         self.walls = {}
@@ -60,13 +59,23 @@ class HexagonConfiguration:
         return (cwEdge.getUnitVector(ccwOffset) - ccwEdge.getUnitVector(cwOffset)) / cos(radians(30)) * multiplier
 
 class Hexagon:
-    def __init__(self, length: float, height: float, centre: Vector = Vector()):
-        self.length = length
+    def __init__(self, shortDiagonal: float, height: float, centre: Vector = Vector()):
+        self.shortDiagonal = shortDiagonal
         self.height = height
         self.centre = centre
 
-        self.rayLength = length / 2 / cos(radians(30))
-        self.side = getHexSide(length)
+        self.rayLength = shortDiagonal / 2 / cos(radians(30))
+        self.side = getHexSide(shortDiagonal)
+
+    def getSide(self):
+        return getHexSide(self.shortDiagonal)
+
+    def getDiagonal(self):
+        return getDiagonal(self.shortDiagonal)
+
+    def createRaySolid(self, configuration: HexagonConfiguration) -> Part.Solid:
+        vertices = [self.getOffsetVertex(vertex, configuration.rays[vertex].offsetDistance if vertex in configuration.rays else 0) for vertex in HexTileVertices.iterate()]
+        return extrudeWire(createWire(*vertices), self.height)
 
     def createSolid(self, multiplier: float = 1) -> Part.Solid:
         wire = createWire(*(self.getVertex(vertex, multiplier) for vertex in HexTileVertices.iterate()))
@@ -82,8 +91,14 @@ class Hexagon:
     def getVertex(self, vertex: HexTileVertices, multiplier: float = 1) -> Vector:
         return self.getVertexVector(vertex, multiplier) + self.centre
 
+    def getOffsetVertex(self, vertex: HexTileVertices, offset: float) -> Vector:
+        return self.getOffsetVertexVector(vertex, offset) + self.centre
+
     def getVertexVector(self, vertex: HexTileVertices, multiplier: float = 1) -> Vector:
         return createVector(self.rayLength * multiplier, vertex.value)
+
+    def getOffsetVertexVector(self, vertex: HexTileVertices, offset: float) -> Vector:
+        return createVector(self.rayLength + offset, vertex.value)
 
     def getRayMultiplierForEdgeOffset(self, offset: float) -> float:
         return offset / sin(radians(60)) / self.rayLength
@@ -98,7 +113,7 @@ class Hexagon:
             perp = createVector(configuration.rayThickness / 2, vertex.value + 90)
             wire = createWire(perp, v + perp, v - perp, -perp)
             wire.translate(self.centre)
-            ray = extrudeWire(wire, configuration.height)
+            ray = extrudeWire(wire, self.height)
             cutRay = ray.common(self.createSolid(multiplier)) if multiplier > 1 else ray.common(self.createWalledSolid(configuration))
             fuser.fuse(cutRay)
 
@@ -116,7 +131,7 @@ class Hexagon:
             v2vertex = self.getWallsIntersection(v2, configuration) + edge.getUnitVector(config.offsetCounterClockWise)
 
             wire = createWire(v1vertex, v2vertex, v2vertex + ccwWallThicknessShift, v1vertex + cwWallThicknessShift)
-            fuser.fuse(extrudeWire(wire, configuration.height))
+            fuser.fuse(extrudeWire(wire, self.height))
 
         # central hex
         delta = self.getRayMultiplierForEdgeOffset(configuration.rayThickness / 2)

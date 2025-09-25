@@ -65,7 +65,7 @@ class CubeBox:
         pencil = Pencil()
         pencil.down(self.dimensions.gapHeight)
         backStepWidth = (self.dimensions.magnetDiameter + self.dimensions.thinnestWall * 2 + self.dimensions.wallThickness) / 2
-        pencil.arcFromStart(Vector(self.dimensions.width / 2, self.dimensions.wallThickness - self.dimensions.height), self.dimensions.holderAngle)
+        pencil.arcWidthDestinationFromStart(Vector(self.dimensions.width / 2, self.dimensions.wallThickness - self.dimensions.height), self.dimensions.holderAngle)
         pencil.right(self.dimensions.width / 2 - backStepWidth)
         pencil.up(self.dimensions.cubeSize * 2 / 3)
         pencil.right(backStepWidth - self.dimensions.wallThickness)

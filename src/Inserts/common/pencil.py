@@ -24,33 +24,40 @@ class Pencil:
         degreesMiddleFromCentre = ((arcDegrees / 2 + centreAngle + 180) % 360)
         destination = self.checkDestination(shiftVector(centre, radius, degreesDestinationFromCentre))
         middle = shiftVector(centre, radius, degreesMiddleFromCentre)
-        self.curves.append(Part.Arc(self.location, middle, destination))
+        return self.arcAbs(middle, destination)
+
+    def arcAbs(self, midpoint: Vector, destination: Vector):
+        self.curves.append(Part.Arc(self.location, midpoint, destination))
         self.location = destination
         return self
 
+    def arcFromStart(self, midpointVector: Vector, destinationVector: Vector):
+        return self.arcAbs(self.start + midpointVector, self.start + destinationVector)
+
+    def arc(self, midpointVector: Vector, destinationVector: Vector):
+        return self.arcAbs(self.location + midpointVector, self.location + destinationVector)
+
     # create arc with specific destination and angle measure
-    def arcTo(self, absDestination: Vector, angle: float):
+    def arcWithDestinationAbs(self, destination: Vector, angle: float):
         # Calculate chord (straight line distance between start and end)
-        absDestination = self.checkDestination(absDestination)
-        chord = absDestination - self.location
-        chordMidpoint = (self.location + absDestination) / 2
+        destination = self.checkDestination(destination)
+        chord = destination - self.location
+        chordMidpoint = (self.location + destination) / 2
         
         # Direction perpendicular to chord (for center calculation)
         perpDirection = Vector(-chord.y, chord.x).normalize()
 
         perpDistance = chord.Length / 2 * tan(radians(angle / 2))
         midpoint = chordMidpoint - perpDirection * perpDistance
-        self.curves.append(Part.Arc(self.location, midpoint, absDestination))
-        self.location = absDestination
-        return self
+        return self.arcAbs(midpoint, destination)
 
     # create arc with specific destination and angle measure
-    def arcFromStart(self, destination: Vector, angle: float):
-        return self.arcTo(destination + self.start, angle)
+    def arcWidthDestinationFromStart(self, destinationVector: Vector, angle: float):
+        return self.arcWithDestinationAbs(destinationVector + self.start, angle)
 
     # create arc with specific destination and angle measure
-    def arc(self, destination: Vector, angle: float):
-        return self.arcTo(destination + self.location, angle)
+    def arcWithDestination(self, destinationVector: Vector, angle: float):
+        return self.arcWithDestinationAbs(destinationVector + self.location, angle)
 
     def jumpTo(self, absDestination: Vector):
         absDestination = self.checkDestination(absDestination)
@@ -80,10 +87,13 @@ class Pencil:
     def right(self, length: float):
         return self.draw(length, -90)
 
-    def extrude(self, height: float):
+    def extrudeCustom(self, vector: Vector):
         wire = self.createWire()
         face = Part.Face(wire)
-        return face.extrude(Vector(0, 0, height))
+        return face.extrude(vector)
+
+    def extrude(self, height: float):
+        return self.extrudeCustom(Vector(0, 0, height))
 
     def extrudeX(self, height: float, transpose: Vector = Vector()):
         solid = self.extrude(height)

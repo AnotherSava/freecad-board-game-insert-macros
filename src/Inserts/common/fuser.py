@@ -12,7 +12,7 @@ def fuse(*args):
     return fuseAll(args)
 
 def getElement(arg):
-    return arg.solid if hasattr(arg, 'solid') else arg
+    return arg.solid if hasattr(arg, 'solid') else arg.getResult() if hasattr(arg, 'getResult') else arg
 
 def fuseAll(args):
     result = None

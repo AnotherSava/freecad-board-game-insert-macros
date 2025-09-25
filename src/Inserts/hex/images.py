@@ -382,6 +382,9 @@ class Images:
         return fuser
 
     def createTile(self, number) -> MultiColourFuser:
+        return self.createTileFuser(number).translate(Vector(0, 0, -self.dimensions.imageHeight))
+
+    def createTileFuser(self, number) -> MultiColourFuser:
         match number:
             case None: return self.createEmpty(Colour.BASE)
             case 3: return self.createSimpleTile(Colour.YELLOW, BaseElementFactory.createSharpTown, HexTileManifestEdges.S)
@@ -437,6 +440,4 @@ class Images:
             case "P1": return self.createPort(2)
             case "P2": return self.createPort(3)
 
-
-
-        raise(f"Invalid tile number: {number}")
+        raise f"Invalid tile number: {number}"

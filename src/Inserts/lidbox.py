@@ -185,5 +185,5 @@ class SlidingLidBox(SmartBox):
         pencil = Pencil()
         pencil.up(self.dimensions.lid.aboveLidHeight)
         pencil.right(sideLength)
-        pencil.arc(Vector(self.dimensions.wallThickness, -self.dimensions.lid.aboveLidHeight), 10)
+        pencil.arcWithDestination(Vector(self.dimensions.wallThickness, -self.dimensions.lid.aboveLidHeight), 10)
         return pencil.extrudeX(bevelBackSideLength, Vector(-bevelBackSideLength / 2, 0, self.dimensions.lid.lidHeight))

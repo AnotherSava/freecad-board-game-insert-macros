@@ -1,6 +1,7 @@
 import math
 from math import tan, cos, sin, radians, ceil, floor
 
+import FreeCAD
 import Part
 from FreeCAD import Vector
 
@@ -9,10 +10,11 @@ from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.fuser import Fuser, fuse
 from Inserts.common.geometry import createWire, createVector
 from Inserts.common.hexagon import Hexagon, HexagonConfiguration
-from Inserts.common.hexes import createRoundedHexTile
+from Inserts.common.hexes import createRoundedHexTile, getDiagonal, getDistanceY, getHexSide
 from Inserts.common.magnets import MagnetDetails, getWidestRadius
 from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
+from Inserts.hex.images import Images
 from dataclasses import dataclass
 
 
@@ -42,19 +44,19 @@ class GridDimensions:
     lidExternalWallThickness: float
     lidSideDelta: float # slightly reduced on sides to make it stackable even with larger magnets
 
-    def getHexSide(self, hexShortDiagonal: float = None):
-        return (hexShortDiagonal or self.hexShortDiagonal) * tan(radians(30))
+    def getHexSide(self, hexShortDiagonal: float = None) -> float:
+        return getHexSide(hexShortDiagonal or self.hexShortDiagonal)
 
-    def getDistanceFromHexCentreToOuterPinAngle(self):
+    def getDistanceFromHexCentreToOuterPinAngle(self) -> float:
         return self.getDistanceFromHexCentreToHexCorner(self.pinWidth * 2 + self.hexShortDiagonal)
 
-    def getDistanceFromHexCentreToHexCorner(self, hexShortDiagonal: float = None):
-        return (hexShortDiagonal or self.hexShortDiagonal) / 2 / cos(radians(30))
+    def getDistanceFromHexCentreToHexCorner(self, hexShortDiagonal: float = None) -> float:
+        return getDiagonal(hexShortDiagonal or self.hexShortDiagonal) / 2
 
-    def getCondensedDistanceY(self):
-        return (self.hexShortDiagonal + self.pinWidth) / cos(radians(30)) - self.getCondensedDistanceX() / 2 * tan(radians(30))
+    def getCondensedDistanceY(self) -> float:
+        return getDistanceY(self.hexShortDiagonal, self.adjacentDistance, self.pinWidth)
 
-    def getCondensedDistanceX(self):
+    def getCondensedDistanceX(self) -> float:
         return self.hexShortDiagonal + self.adjacentDistance
 
     def getHexCentre(self, row: int, column: int) -> Vector:
@@ -244,13 +246,13 @@ class CondensedBoard:
         fuser.fuse(bases)
         fuser.cut(holes)
 
-        return MultiColourFuser(Colour.BASE, fuser)
+        return MultiColourFuser(Colour.BASE, fuser).translate(Vector(0, 0, -self.dimensions.floorThickness))
 
     def createHexagon(self, row: int, column: int) -> Hexagon:
         return Hexagon(self.dimensions.hexShortDiagonal, self.dimensions.getLidHeight(), self.dimensions.getHexCentre(row, column))
 
     def createHexagonConfiguration(self, row: int, column: int) -> HexagonConfiguration:
-        config = HexagonConfiguration(self.dimensions.getLidHeight(), self.dimensions.lidInfillThickness, self.dimensions.lidExternalWallThickness).withRays().withHiddenWalls(self.dimensions.adjacentDistance / 2)
+        config = HexagonConfiguration(self.dimensions.lidInfillThickness, self.dimensions.lidExternalWallThickness).withRays().withHiddenWalls(self.dimensions.adjacentDistance / 2)
 
         adjacentDistanceDelta = self.dimensions.adjacentDistance / 2 / cos(radians(30))
         pinWidthDelta = (self.dimensions.pinWidth - self.dimensions.adjacentDistance / 2) / cos(radians(30))
@@ -363,3 +365,15 @@ class CondensedBoard:
         fuser.cut(holes)
 
         return fuser.mirrorZ()
+
+    def createTileBoard(self, imageFactory: Images, *tileNumbers) -> MultiColourFuser:
+        assert len(tileNumbers) % 2 == 0
+
+        images = MultiColourFuser()
+
+        for index, number in enumerate(tileNumbers):
+            images.fuseAll(imageFactory.createTile(number).translate(self.dimensions.getHexCentre(math.floor(index / 2), index % 2)))
+
+        board = self.createBoard()
+
+        return board.replaceAll(images.common(board))
