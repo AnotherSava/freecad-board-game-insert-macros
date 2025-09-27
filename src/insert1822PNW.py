@@ -146,20 +146,35 @@ cubeSize = 8
 cubeBoxHeight = 12.2
 
 cubeBoxDimensions = cubebox.CubeBoxDimensions(
-    wallThickness=1.2,
+    lid=MeshLidDimensions(
+        handleRadius=2,
+        wallThickness=nozzleSize * 2,
+        gridThickness=nozzleSize * 1.2,
+        height=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
+        magnetHeight=magnet3x3height,
+        fillCorners=True,
+        minimalMeshHeight=0.8,
+        fillHandleSides=True,
+        # hexCountLength=10,
+        hexCountLength=28,
+        # maxGridShortDiagonal = 7
+        # maxGridShortDiagonal = 20
+    ),
+
+    wallThickness=nozzleSize * 2,
     length=cardBoxDimensions.getBoxLength(),
     width=240 - cardBoxDimensions.getBoxWidth() - companyBoxDimensions.getBoxLength(),
     lidHeight=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
-    lidHandleHeight=cardBoxDimensions.getBoxHeight() - cubeBoxHeight - 2.4,
     gapHeight=cubeSize * 2 / 3,
     holderAngle=15,
     height=cubeBoxHeight,
     playerCubeSpaceWidth=19.5,
-    magnetDiameter=magnet3Diameter,
+    magnetDiameter=magnet3Diameter + 0.1,
     magnetHeightBox=magnet3x3height,
     magnetHeightLid=magnet3x3height,
     cubeSize=8,
-    thinnestWall=nozzleSize * 2
+    thinnestWall=nozzleSize * 2,
+    internalWallRadius=4
 )
 
 markerBoxHeight = 7.2
@@ -168,7 +183,6 @@ markerBoxDimensions = markerbox.Dimensions(
     lid = MeshLidDimensions(
         handleRadius=2,
         wallThickness = nozzleSize * 3,
-        # gridThickness = nozzleSize * 2,
         gridThickness = nozzleSize * 1.2,
         height = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
         magnetHeight = magnet3x3height,
@@ -182,7 +196,7 @@ markerBoxDimensions = markerbox.Dimensions(
     length=174,
     width=92,
     height=markerBoxHeight,
-    ligHeightDelta = 1.6,
+    lidHeightDelta= 1.6,
     floorHeight=0.8,
     padding=2,
     delta=nozzleSize * 2,
@@ -212,9 +226,9 @@ exportItems = [
     # ExportObject("tile-tray3", lambda: createTileBoard("X5", "X10", 769, 767, 63, 768, 611, 611, 546, 545, 544, 544, 622, 405, 207, 208)),
     # ExportObject("tile-tray4", lambda: createTileBoard("X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")),
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
-    ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
+    # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
     # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
     # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
@@ -232,5 +246,5 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 
 exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
 
-# exporter.show()
-exporter.export()
+exporter.show()
+# exporter.export()

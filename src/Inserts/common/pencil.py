@@ -52,7 +52,7 @@ class Pencil:
         return self.arcAbs(midpoint, destination)
 
     # create arc with specific destination and angle measure
-    def arcWidthDestinationFromStart(self, destinationVector: Vector, angle: float):
+    def arcWithDestinationFromStart(self, destinationVector: Vector, angle: float):
         return self.arcWithDestinationAbs(destinationVector + self.start, angle)
 
     # create arc with specific destination and angle measure

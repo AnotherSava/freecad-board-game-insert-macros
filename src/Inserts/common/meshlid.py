@@ -28,6 +28,7 @@ class MeshLidDimensions:
     minimalMeshHeight: float
     beautifyHandle: bool = True
     fillCorners: bool = False
+    fillHandleSides: bool = False
     magnetDiameter: float = None
     delta: float = None
     hexCountLength: int = None # how many hexes length fit
@@ -44,7 +45,7 @@ class MeshLidDimensions:
         return self.hexCountLength or math.ceil((self.length - self.wallThickness * 2 + self.gridThickness) / (self.maxGridShortDiagonal + self.gridThickness))
 
     def getMeshHeight(self):
-        return self.height - self.innerSpaceHeight
+        return self.height - (self.innerSpaceHeight or 0)
 
     def getHexShortDiagonal(self):
         return (self.length - self.wallThickness * 2 - self.gridThickness * (self.getHexCountLength() - 1)) / self.getHexCountLength()
@@ -60,8 +61,12 @@ class MeshLid(SmartSolid):
 
         self.internalMesh = SmartBox(self.dimensions.length - self.dimensions.wallThickness * 2, self.dimensions.width - self.dimensions.wallThickness * 2, self.dimensions.getMeshHeight())
         self.internalMesh.translate(self.dimensions.wallThickness, self.dimensions.wallThickness)
-        self.internalSpace = SmartBox(self.dimensions.length - self.dimensions.wallThickness * 2, self.dimensions.width - self.dimensions.wallThickness * 2, self.dimensions.innerSpaceHeight)
-        self.internalSpace.translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.getMeshHeight())
+
+        self.internalSpace = None
+        if self.dimensions.innerSpaceHeight:
+            self.internalSpace = SmartBox(self.dimensions.length - self.dimensions.wallThickness * 2, self.dimensions.width - self.dimensions.wallThickness * 2, self.dimensions.innerSpaceHeight)
+            self.internalSpace.translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.getMeshHeight())
+
         self.externalLid = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height)
         self.internalMeshHex = Hexagon(self.dimensions.getHexShortDiagonal(), self.dimensions.getMeshHeight())
 
@@ -85,6 +90,7 @@ class MeshLid(SmartSolid):
         return solid
 
     def createLidMesh(self) -> Fuser:
+        print(f"Mesh lid: rows = {self.fullRowCount}, columns = {self.dimensions.getHexCountLength()}")
         hexes = Fuser()
         for row in range(self.fullRowCount + 1):
             for column in range(self.dimensions.getHexCountLength() + 1):
@@ -97,7 +103,7 @@ class MeshLid(SmartSolid):
         recessInner, handle = self.createHandle()
         magnetBases, magnetHoles = createMagnetHolders(self.dimensions.magnetDiameter, self.dimensions.magnetHeight, True, self.dimensions.height, self.dimensions.delta, magnetDetails)
 
-        fuser = Fuser(self.createLidMesh(), magnetBases).cut(recessInner, magnetHoles).fuse(handle)
+        fuser = Fuser(self.createLidMesh(), magnetBases).cut(recessInner).fuse(handle).cut(magnetHoles)
         return MultiColourFuser(Colour.BASE, fuser)
 
     def createRecess(self, length: float, width: float, height) -> Fuser:
@@ -159,4 +165,11 @@ class MeshLid(SmartSolid):
         hexBottom = self.createMeshHex(deltaHexes - 1, math.floor(self.dimensions.getHexCountLength() / 2))
         hexTop = self.createMeshHex(self.fullRowCount - deltaHexes + 1, math.floor(self.dimensions.getHexCountLength() / 2))
 
-        return recess, Fuser(handle, roundedHandle).cut(hexTop, hexBottom)
+        fullHandle = Fuser(handle, roundedHandle)
+
+        if self.dimensions.fillHandleSides:
+            fullHandle.fuse(hexTop, hexBottom).common(self.internalMesh)
+        else:
+            fullHandle.cut(hexTop, hexBottom)
+
+        return recess, fullHandle

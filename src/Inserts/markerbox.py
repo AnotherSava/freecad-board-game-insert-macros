@@ -1,14 +1,12 @@
 import Draft
-import Part
 from FreeCAD import Vector, Document
 
 from Inserts.common.colours import MultiColourFuser, Colour
 from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
 from Inserts.common.fuser import Fuser, fuse, fuseAll
 from Inserts.common.labels import Labels
-from Inserts.common.magnets import createCornerLocations, createMagnetHolders, createMagnetHoles, MagnetDetails
+from Inserts.common.magnets import createCornerLocations, createMagnetHoles, MagnetDetails
 from Inserts.common.meshlid import MeshLidDimensions, MeshLid
-from Inserts.common.primitives import createTaperedBox
 from Inserts.common.smartbox import SmartBox
 from dataclasses import dataclass
 
@@ -19,7 +17,7 @@ class Dimensions:
     length: float
     width: float
     height: float
-    ligHeightDelta: float
+    lidHeightDelta: float
     floorHeight: float
     padding: float
     delta: float
@@ -42,7 +40,7 @@ class Dimensions:
         self.lid.magnetDiameter = self.magnetDiameter
 
     def getLidInnerHeight(self):
-        return self.floorHeight + self.getMaxObjectsHeight() - self.height + self.ligHeightDelta
+        return self.floorHeight + self.getMaxObjectsHeight() - self.height + self.lidHeightDelta
 
     def getMaxObjectsHeight(self):
         return max(self.stations.height, self.markers.height)
@@ -59,14 +57,11 @@ class Dimensions:
     def getShorterRowPositionX(self):
         return self.getLongerRowPosX() + self.getLongerRowWidth() - self.getShorterRowWidth()
 
-    def alignHeight(self, height):
-        return self.floorHeight + self.getMaxObjectsHeight() - height
-
     def getStationPosZ(self):
-        return self.alignHeight(self.stations.height)
+        return self.floorHeight + self.getMaxObjectsHeight() - self.stations.height
     
     def getMarkerPosZ(self):
-        return self.alignHeight(self.markers.height)
+        return self.floorHeight + self.getMaxObjectsHeight() - self.markers.height
 
 
 # Holder for the following items: minor company stations and stock markers, company charters (as a lid)
@@ -79,7 +74,7 @@ class MarkerBox:
         box = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height)
 
         labels, markersAndStationsRecess = self.createMarkersAndStations()
-        magnetLocations = self.createMagnetLocations(self.dimensions.magnetCountBox, box.zTo)
+        magnetLocations = self.createMagnetDetails(self.dimensions.magnetCountBox, box.zTo)
         magnetHoles = createMagnetHoles(self.dimensions.magnetDiameter, self.dimensions.magnetHeightBox, True, magnetLocations)
         fuser = MultiColourFuser(Colour.WHITE, labels)
         fuser.fuse(Colour.BASE, box).cut(markersAndStationsRecess, magnetHoles)
@@ -89,7 +84,7 @@ class MarkerBox:
     def createLid(self) -> MultiColourFuser:
         lid = MeshLid(self.dimensions.lid)
 
-        magnetDetails = self.createMagnetLocations(self.dimensions.magnetCountLid, lid.z)
+        magnetDetails = self.createMagnetDetails(self.dimensions.magnetCountLid, lid.z)
 
         return lid.createLid(magnetDetails)
 
@@ -138,7 +133,7 @@ class MarkerBox:
 
         return labels, fuse(markersShorter, stationsShorter, stationsLonger, markersLonger, privateRailways, cityTokens, roundMarker, specialTokens)
 
-    def createMagnetLocations(self, count: int, z: float) -> list[MagnetDetails]:
+    def createMagnetDetails(self, count: int, z: float) -> list[MagnetDetails]:
         locations = createCornerLocations(self.dimensions.length, self.dimensions.width, z, self.dimensions.magnetDiameter, self.dimensions.delta, count)
 
         for i in range(4):

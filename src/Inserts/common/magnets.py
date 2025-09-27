@@ -15,7 +15,7 @@ wideningPartHeightCoefficient = 1 / 3
 class MagnetDetails:
     centre: Vector
     count: int = 1
-    cornerAngle: int | None = None # base will have a corner at a specific direction (CCW from Y axis) rather than be round
+    cornerAngle: list[int] = None # base will have a corner at a specific direction (CCW from Y axis) rather than be round; if (0, 90, 180 or 270), will have two adjacent corners
     rampDirection: int | None = None
     rampCentreAdjustment: float | None = None # [-1..1] If ramp is facing up, -1 = leftmost point of the base diameter, 1 = rightmost point
     rampLengthMultiplier: float | None = None # times base radius
@@ -50,8 +50,8 @@ def createMagnetBase(magnetDiameter: float, magnetHeight: float, magnetOnTop: bo
     fuser = Fuser()
 
     if details.cornerAngle is not None:
-        cornerBase = Part.makeBox(wideBaseRadius, wideBaseRadius, baseHeight).rotate(Vector(0, 0, 0), Vector(0, 0, 1), details.cornerAngle + 45)
-        fuser.fuse(cornerBase)
+        for angle in details.cornerAngle:
+            fuser.fuse(Part.makeBox(baseRadius, baseRadius, baseHeight).rotate(Vector(0, 0, 0), Vector(0, 0, 1), angle + 45))
 
     if details.rampDirection is not None:
         ramp = createHalfCurve(baseRadius, details, wideBaseRadius, baseHeight)

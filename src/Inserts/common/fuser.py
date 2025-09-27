@@ -9,7 +9,11 @@ class Fusible(ABC):
         pass
 
 def fuse(*args):
-    return fuseAll(args)
+    # Flatten if first argument is iterable
+    if len(args) == 1 and hasattr(args[0], '__iter__') and not isinstance(args[0], str):
+        return fuseAll(list(args[0]))
+    else:
+        return fuseAll(args)
 
 def getElement(arg):
     return arg.solid if hasattr(arg, 'solid') else arg.getResult() if hasattr(arg, 'getResult') else arg
@@ -34,7 +38,8 @@ class Fuser:
 
     def cut(self, *args) -> 'Fuser':
         for arg in args:
-            self.solid = self.solid.cut(getElement(arg))
+            if arg is not None:
+                self.solid = self.solid.cut(getElement(arg))
         return self
 
     def common(self, *args) -> 'Fuser':
