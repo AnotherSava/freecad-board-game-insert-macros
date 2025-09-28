@@ -84,8 +84,9 @@ class SmartBox(SmartSolid):
     # def createCornerMagnetDetails(self, widerRadius: float, count: int = 1) -> list[MagnetDetails]:
     #     return [self.createMagnetDetails(row, column, 2, 2, widerRadius, CornerAngleType.MIN, None, count) for row in range(2) for column in range(2)]
 
-    def createMagnetDetails(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] = None, cutAngle: list[int] = None, ramp: RampDetails = None, magnetCount: int = 1, adjacentToWidening: bool = True):
+    def createMagnetDetails(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] = None, cutAngle: list[int] = None, ramp: RampDetails = None,
+                            cornerHeight: float = None, magnetCount: int = 1, adjacentToWidening: bool = True):
         x = max(min(column * self.length / (columnCount - 1), self.length - widerRadius), widerRadius)
         y = max(min(row * self.width / (rowCount - 1), self.width - widerRadius), widerRadius)
 
-        return MagnetDetails(Vector(x, y), magnetCount, cornerAngle, cutAngle, ramp, adjacentToWidening)
+        return MagnetDetails(Vector(x, y), magnetCount, cornerAngle, cutAngle, cornerHeight, ramp, adjacentToWidening)

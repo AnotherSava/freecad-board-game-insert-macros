@@ -59,6 +59,6 @@ class Exporter:
 
     def show(self):
         for item in self.exportItems:
-            item.generator().showSolid()
+            item.generator().show()
 
         FreeCAD.Gui.SendMsgToActiveView('ViewFit')

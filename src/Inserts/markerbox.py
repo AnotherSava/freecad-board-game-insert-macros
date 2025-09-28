@@ -72,7 +72,7 @@ class MarkerBox(SmartBox):
         box = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height)
 
         labels, markersAndStationsRecess = self.createMarkersAndStations()
-        magnetHoles = createMagnetHoles(self.dimensions.magnets, True, self.createMagnetDetails()).translate(Vector(0, 0, box.zTo))
+        magnetHoles = createMagnetHoles(self.dimensions.magnets, True, self.createCustomMagnetDetails()).translate(Vector(0, 0, box.zTo))
 
         fuser = MultiColourFuser(Colour.WHITE, labels)
         fuser.fuse(Colour.BASE, box).cut(markersAndStationsRecess, magnetHoles)
@@ -129,7 +129,7 @@ class MarkerBox(SmartBox):
 
         return labels, fuse(markersShorter, stationsShorter, stationsLonger, markersLonger, privateRailways, cityTokens, roundMarker, specialTokens)
 
-    def createMagnetDetails(self) -> list[MagnetDetails]:
+    def createCustomMagnetDetails(self) -> list[MagnetDetails]:
         cornerMagnets = self.createCornerMagnetDetails(self.dimensions.magnets.getWiderBaseRadius())
         middleMagnets = [MagnetDetails(Vector(self.dimensions.length / 4 * (i + 0.5), self.dimensions.width / 2)) for i in range(4)]
 

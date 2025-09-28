@@ -55,34 +55,43 @@ class CubeBox(SmartBox):
     def createRecess(self) -> Fuser:
         pencil = Pencil()
         pencil.down(self.dimensions.gapHeight)
-        backStepWidth = self.dimensions.magnets.getBaseRadius() + self.dimensions.magnets.getWiderBaseRadius()
-        pencil.arcWithDestinationFromStart(Vector(self.dimensions.width - backStepWidth, self.dimensions.wallThickness - self.dimensions.height), self.dimensions.holderAngle)
-        pencil.up(self.dimensions.height - self.dimensions.gapHeight - self.dimensions.wallThickness)
-        pencil.right(backStepWidth)
+        pencil.left(self.dimensions.wallThickness)
+        pencil.down(self.dimensions.height - self.dimensions.gapHeight - self.dimensions.wallThickness)
+        pencil.arcWithCentreDirection(Vector(0, 1), Vector(self.dimensions.wallThickness - self.box.width, self.dimensions.height - self.dimensions.gapHeight - self.dimensions.wallThickness))
         pencil.up(self.dimensions.gapHeight)
-        return Fuser(pencil.extrudeX(self.dimensions.length)).translate(Vector(0, 0, self.dimensions.height))
+        return Fuser(pencil.extrudeX(self.dimensions.length)).translate(Vector(0, self.box.yTo, self.box.zTo))
 
     def createMagnetLocations(self, lid: bool):
         widerRadius = self.dimensions.magnets.getWiderBaseRadius()
+        height = None if lid else self.box.height - self.dimensions.gapHeight
 
         return [
-            self.createMagnetDetails(0, 0, 2, 3, widerRadius, None, [CornerAngles.SW], None if lid else RampDetails(Side.N, -1, 3, self.dimensions.wallThickness), 1, False),
-            self.createMagnetDetails(0, 1, 2, 3, widerRadius, None, None, None if lid else RampDetails(Side.N, 0, 3, self.dimensions.wallThickness), 1, False),
-            self.createMagnetDetails(0, 2, 2, 3, widerRadius, None, [CornerAngles.SE], None if lid else RampDetails(Side.N, 1, 3, self.dimensions.wallThickness), 1, False),
+            self.createMagnetDetails(0, 0, 2, 3, widerRadius, None, [CornerAngles.SW], None, height),
+            self.createMagnetDetails(0, 2, 2, 3, widerRadius, None, [CornerAngles.SE], None, height),
 
-            self.createMagnetDetails(1, 0, 2, 3, widerRadius, [CornerAngles.SW], [CornerAngles.NW], None, 1, False),
-            self.createMagnetDetails(1, 1, 2, 3, widerRadius, None, None),
-            self.createMagnetDetails(1, 2, 2, 3, widerRadius, [CornerAngles.SE], [CornerAngles.NE], None, 1, False)
+            self.createMagnetDetails(1, 0, 2, 3, widerRadius, [CornerAngles.NE], [CornerAngles.NW], None, height),
+            self.createMagnetDetails(1, 2, 2, 3, widerRadius, [CornerAngles.NW], [CornerAngles.NE], None, height)
         ]
 
     def createWall(self) -> SmartSolid:
         return SmartBox(self.dimensions.wallThickness, self.box.width, self.dimensions.height - self.dimensions.gapHeight)
 
     def createLargerWall(self) -> SmartSolid:
-        return SmartBox(self.dimensions.wallThickness, self.dimensions.width - self.dimensions.magnets.getWiderBaseRadius() * 2, self.dimensions.height - self.dimensions.magnets.getWideningHeight())
+        return SmartBox(self.dimensions.magnets.getBaseRadius() * 2, self.box.width - self.dimensions.magnets.getBaseRadius() * 2, self.dimensions.height - self.dimensions.magnets.getWideningHeight())
 
     def createWalls(self) -> Part.Solid:
-        playerCubeSpaceLength = (self.box.length / 2 - self.dimensions.wallThickness * 5.5) / 5
-        fuser = Fuser(self.createWall().translate(self.box.x + (self.dimensions.wallThickness + playerCubeSpaceLength) * i, self.box.y) for i in [1, 2, 3, 4, 6, 7])
-        fuser.fuse(self.createLargerWall().translate(self.box.x + (self.dimensions.wallThickness + playerCubeSpaceLength) * i, self.dimensions.magnets.getWiderBaseRadius()) for i in [0, 5, 10])
+        playerCubeSpaceLength = self.getPlayerCubeSpaceLength()
+        startX = self.box.x + self.dimensions.magnets.getBaseRadius() * 2 - self.dimensions.wallThickness
+        fuser = Fuser(self.createWall().translate(startX + (self.dimensions.wallThickness + playerCubeSpaceLength) * i, self.box.y) for i in range(1, 8))
+        fuser.fuse(self.createLargerWall().translate(x, self.box.y + self.dimensions.magnets.getBaseRadius()) for x in [self.box.x, self.box.xTo - self.dimensions.magnets.getBaseRadius() * 2])
         return fuser.solid
+
+    def getPlayerCubeSpaceLength(self):
+        totalCubeColumns = 20
+        totalCubeCompartments = 8
+        cubeSize = 7.8
+        totalLength = self.box.length - self.dimensions.magnets.getBaseRadius() * 4
+        deltaLength = totalLength - self.dimensions.wallThickness * (totalCubeCompartments - 1) - cubeSize * totalCubeColumns
+        deltaLengthPerCompartment = deltaLength / totalCubeCompartments
+
+        return 2 * cubeSize + deltaLengthPerCompartment

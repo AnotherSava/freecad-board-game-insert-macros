@@ -77,6 +77,7 @@ class MagnetDetails:
     count: int = 1
     cornerAngle: list[int] = None # base will have a corner at a specific direction (CCW from Y axis) rather than be round; if (0, 90, 180 or 270), will have two adjacent corners
     cornerAngleCut: list[int] = None # same as cornerAngle, but to cut from foundation and leave rounded base
+    cornerHeight: float = None
     ramp: RampDetails = None
     adjacentToWidening: bool = True
 
@@ -103,7 +104,7 @@ def createHalfCurve(dimensions: MagnetDimensions, details: MagnetDetails, baseHe
 def createMagnetBaseCorners(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight: float, angles: list[int], details: MagnetDetails) -> Fuser:
     fuser = Fuser()
     if angles is not None:
-        height = baseHeight if details.adjacentToWidening else baseHeight - dimensions.getWideningHeight()
+        height = details.cornerHeight or baseHeight if details.adjacentToWidening else baseHeight - dimensions.getWideningHeight()
         fuser.fuse(Part.makeBox(dimensions.getBaseRadius(), dimensions.getBaseRadius(), height).rotate(Vector(0, 0, 0), Vector(0, 0, 1), angle + 45) for angle in angles)
 
     if magnetOnTop:

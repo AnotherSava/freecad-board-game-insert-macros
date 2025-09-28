@@ -1,4 +1,4 @@
-from math import tan, radians
+from math import tan, radians, degrees, acos, sin, cos
 
 import Part
 from FreeCAD import Vector
@@ -37,19 +37,50 @@ class Pencil:
     def arc(self, midpointVector: Vector, destinationVector: Vector):
         return self.arcAbs(self.location + midpointVector, self.location + destinationVector)
 
+    def arcWithCentreDirection(self, centreDirection: Vector, destinationVector: Vector):
+        # Create copies and normalize to preserve original vectors
+        # Calculate angle between vectors using dot product
+        dotProduct = Vector(centreDirection).normalize().dot(Vector(destinationVector).normalize())
+        # Clamp dot product to [-1, 1] to handle floating point precision errors
+        dotProduct = max(-1.0, min(1.0, dotProduct))
+        a = degrees(acos(dotProduct))
+        print(a, 2 * a - 180)
+
+        return self.arcWithDestination(destinationVector, 2 * a - 180)
+
     # create arc with specific destination and angle measure
     def arcWithDestinationAbs(self, destination: Vector, angle: float):
         # Calculate chord (straight line distance between start and end)
         destination = self.checkDestination(destination)
         chord = destination - self.location
+        chordLength = chord.Length
+        
         chordMidpoint = (self.location + destination) / 2
         
+        # Calculate radius using chord length and arc angle
+        # For an arc with angle θ, radius = chord_length / (2 * sin(θ/2))
+        halfAngleRad = radians(abs(angle) / 2)
+        if halfAngleRad == 0:
+            return self.jumpTo(destination)  # Straight line for 0° angle
+            
+        radius = chordLength / (2 * sin(halfAngleRad))
+        
+        # Distance from chord midpoint to arc center
+        centerDistance = radius * cos(halfAngleRad)
+        
         # Direction perpendicular to chord (for center calculation)
+        # Positive angle goes counter-clockwise (left side of chord)
         perpDirection = Vector(-chord.y, chord.x).normalize()
-
-        perpDistance = chord.Length / 2 * tan(radians(angle / 2))
-        midpoint = chordMidpoint - perpDirection * perpDistance
-        return self.arcAbs(midpoint, destination)
+        if angle < 0:
+            perpDirection = -perpDirection  # Clockwise for negative angles
+            
+        center = chordMidpoint + perpDirection * centerDistance
+        
+        # Calculate midpoint of arc for Part.Arc
+        # The arc midpoint is on the arc, perpendicular to the chord at center
+        arcMidpoint = center - perpDirection * radius
+        
+        return self.arcAbs(arcMidpoint, destination)
 
     # create arc with specific destination and angle measure
     def arcWithDestinationFromStart(self, destinationVector: Vector, angle: float):

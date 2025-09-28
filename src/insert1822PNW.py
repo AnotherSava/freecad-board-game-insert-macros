@@ -228,19 +228,19 @@ exportItems = [
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
     # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
-    ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]
 
 
 
-# FreeCAD.Gui.activeDocument().activeView().viewIsometric()
+FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 # FreeCAD.Gui.activeDocument().activeView().viewLeft()
 # FreeCAD.Gui.activeDocument().activeView().viewFront()
 # FreeCAD.Gui.activeDocument().activeView().viewTop()
-FreeCAD.Gui.activeDocument().activeView().viewBottom()
+# FreeCAD.Gui.activeDocument().activeView().viewBottom()
 # FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 
