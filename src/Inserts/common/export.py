@@ -3,7 +3,7 @@ import FreeCAD
 import subprocess
 import os
 import glob
-from Inserts.common.colours import Colour
+from Inserts.common.colours import Colour, showSolid
 from dataclasses import dataclass
 
 
@@ -35,8 +35,7 @@ class Exporter:
     def getLastGithubCommitId(self):
         return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.folder).decode('utf-8').strip()[:7]
 
-    def export(self):
-
+    def export(self, showTransparency: int = None):
         githubCommit = self.getLastGithubCommitId()
 
         for exportObject in self.exportItems:
@@ -48,11 +47,18 @@ class Exporter:
 
             for (colour, f) in multiColouredFuser.fuserByColour.items():
                 filename = self.createFileName(exportObject, colour, githubCommit)
-                f.solid.exportStl(filename)
+                solid = f.solid.removeSplitter()
+                solid.exportStl(filename)
                 print(f"Exported {exportObject.prefix} to {filename}")
+
+                if showTransparency is not None:
+                    showSolid(solid, colour, showTransparency)
+
+        if showTransparency is not None:
+            FreeCAD.Gui.SendMsgToActiveView('ViewFit')
 
     def show(self):
         for item in self.exportItems:
-            item.generator().show()
+            item.generator().showSolid()
 
         FreeCAD.Gui.SendMsgToActiveView('ViewFit')

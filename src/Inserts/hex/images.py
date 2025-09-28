@@ -1,21 +1,20 @@
 import math
+from dataclasses import dataclass
 from math import tan, cos, sin, radians, pi
-
-from Inserts.common import geometry
-from Inserts.common.hexes import getHexSide
-from Inserts.common.labels import Labels
-from Inserts.common.smartbox import SmartBox
 from typing import Callable
 
 import Part
 from FreeCAD import Vector, Document
 
+from Inserts.common import geometry
 from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser, fuseAll
+from Inserts.common.fuser import Fuser, fuse
 from Inserts.common.geometry import createWire, createVector
+from Inserts.common.hexes import getHexSide
+from Inserts.common.labels import Labels
 from Inserts.common.pencil import Pencil
+from Inserts.common.smartbox import SmartBox
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges, HexTileManifestEdges
-from dataclasses import dataclass
 
 
 @dataclass
@@ -243,7 +242,7 @@ class BaseElementFactory:
         pencil.jumpFromStart(Vector(0, -self.dimensions.railWidth - delta * 2))
         solidSpike = pencil.extrude(self.dimensions.imageHeight)
 
-        return fuseAll(self.alignToEdge(solidSpike.copy(), edge) for edge in edges)
+        return fuse(self.alignToEdge(solidSpike.copy(), edge) for edge in edges)
 
     def createRays(self, *edges: HexTileEdges) -> Part.Solid:
         rayLength = self.dimensions.hexShortDiagonal / 2 + self.dimensions.railWidth / 2 * tan(radians(30))
@@ -254,7 +253,7 @@ class BaseElementFactory:
         pencil.left(rayLength)
         solidRay = pencil.extrude(self.dimensions.imageHeight)
 
-        return fuseAll(self.alignToEdge(solidRay.copy(), edge) for edge in edges)
+        return fuse(self.alignToEdge(solidRay.copy(), edge) for edge in edges)
 
     def createValueBox(self, offsetMultiplier: float, delta: float) -> SmartBox:
         length = getHexSide(self.dimensions.hexShortDiagonal) * 0.45

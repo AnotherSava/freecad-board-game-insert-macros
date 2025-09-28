@@ -9,11 +9,14 @@ class Fusible(ABC):
         pass
 
 def fuse(*args):
-    # Flatten if first argument is iterable
-    if len(args) == 1 and hasattr(args[0], '__iter__') and not isinstance(args[0], str):
-        return fuseAll(list(args[0]))
-    else:
-        return fuseAll(args)
+    result = None
+
+    for arg in args:
+        element = fuseAll(list(arg)) if hasattr(arg, '__iter__') else getElement(arg)
+        if element is not None:
+            result = element.copy() if result is None else result.fuse(element)
+
+    return result
 
 def getElement(arg):
     return arg.solid if hasattr(arg, 'solid') else arg.getResult() if hasattr(arg, 'getResult') else arg
@@ -22,8 +25,8 @@ def fuseAll(args):
     result = None
 
     for arg in args:
-        if arg is not None:
-            element = getElement(arg)
+        element = getElement(arg)
+        if element is not None:
             result = element.copy() if result is None else result.fuse(element)
 
     return result

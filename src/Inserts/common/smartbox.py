@@ -4,22 +4,17 @@ from Part import Solid
 
 from Inserts.common.fuser import Fuser
 from Inserts.common.geometry import Side
-from Inserts.common.magnets import MagnetDetails
+from Inserts.common.magnets import MagnetDetails, RampDetails
 from Inserts.common.pencil import Pencil
 from Inserts.common.smartsolid import SmartSolid
 from enum import IntEnum
 
 
-class CornerAngleType(IntEnum):
-    NONE = 0
-    MIN = 1
-    MAX = 2
-
 class SmartBox(SmartSolid):
-    def __init__(self, length: float, width: float, height: float):
-        super().__init__(length, width, height)
+    def __init__(self, length: float, width: float, height: float, x: float = 0, y: float = 0, z: float = 0):
+        super().__init__(length, width, height, x, y, z)
 
-        self.solid = Part.makeBox(length, width, height)
+        self.solid = Part.makeBox(length, width, height, Vector(x, y, z))
 
     def addCut(self, side: Side, length: float, extraWidth: float, height: float, shift: float = 0):
         preCutCoefficient = 0.2
@@ -86,36 +81,11 @@ class SmartBox(SmartSolid):
 
         raise ValueError(f"Unexpected side: ${side}")
 
+    # def createCornerMagnetDetails(self, widerRadius: float, count: int = 1) -> list[MagnetDetails]:
+    #     return [self.createMagnetDetails(row, column, 2, 2, widerRadius, CornerAngleType.MIN, None, count) for row in range(2) for column in range(2)]
 
-    def createMagnetLocation(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] | CornerAngleType = None, rampDirection: int = None, rampCentreAdjustment: float = None, rampLengthMultiplier: float = None, wallThickness: float = None, magnetCount: int = 1):
-        if cornerAngle in [CornerAngleType.MIN, CornerAngleType.MAX]:
-            if row == 0:
-                if column == 0:
-                    angles = [135] if cornerAngle == CornerAngleType.MIN else [135, 45, -135]
-                elif column == columnCount - 1:
-                    angles = [-135] if cornerAngle == CornerAngleType.MIN else [135, -45, -135]
-                else:
-                    angles = [135, -135]
-            elif row == rowCount -1:
-                if column == 0:
-                    angles = [45] if cornerAngle == CornerAngleType.MIN else [135, 45, -45]
-                elif column == columnCount - 1:
-                    angles = [-45] if cornerAngle == CornerAngleType.MIN else [45, -45, -135]
-                else:
-                    angles = [45, -45]
-            else:
-                if column == 0:
-                    angles = [45, 135]
-                elif column == columnCount - 1:
-                    angles = [-45, -135]
-                else:
-                    angles = None
-        elif cornerAngle == CornerAngleType.NONE:
-            angles = None
-        else:
-            angles = cornerAngle
-
+    def createMagnetDetails(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] = None, cutAngle: list[int] = None, ramp: RampDetails = None, magnetCount: int = 1, adjacentToWidening: bool = True):
         x = max(min(column * self.length / (columnCount - 1), self.length - widerRadius), widerRadius)
         y = max(min(row * self.width / (rowCount - 1), self.width - widerRadius), widerRadius)
 
-        return MagnetDetails(Vector(x, y), magnetCount, angles, rampDirection, rampCentreAdjustment, rampLengthMultiplier, wallThickness)
+        return MagnetDetails(Vector(x, y), magnetCount, cornerAngle, cutAngle, ramp, adjacentToWidening)

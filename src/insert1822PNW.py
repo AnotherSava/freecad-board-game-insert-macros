@@ -1,32 +1,30 @@
-import math
-import sys
+import importlib
 
 import FreeCAD
-from FreeCAD import Vector
 
-import importlib
+from Inserts.common.magnets import MAGNET_3x3
 from common import freecad
 
 importlib.reload(freecad)
-from common.freecad import reloadProjectModules
+from common.freecad import reloadProjectModules, clearLogs, closeAllDocuments
 
+clearLogs()
+closeAllDocuments()
 reloadProjectModules()
 
 from Inserts.common.meshlid import MeshLidDimensions
 from Inserts import company, cardbox, cubebox, markerbox
-from Inserts.cardbox import CardBox
 from Inserts.common.colours import MultiColourFuser
 from Inserts.common.export import ExportObject, Exporter
 from Inserts.common.smartbox import Side
-from Inserts.company import CompanyBox, CylinderObjectSet
+from Inserts.company import CylinderObjectSet
 from Inserts.cubebox import CubeBox
 from Inserts.hex.condensed import CondensedBoard, GridDimensions
 from Inserts.hex.images import HexImageDimensions, Images
 from Inserts.lidbox import LidDimensions
-from Inserts.markerbox import MarkerBox
 from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
 
-reloadProjectModules()
+# reloadProjectModules()
 
 gridDimensions = GridDimensions(
     hexShortDiagonal=28,
@@ -147,63 +145,65 @@ cubeBoxHeight = 12.2
 
 cubeBoxDimensions = cubebox.CubeBoxDimensions(
     lid=MeshLidDimensions(
+        magnets=MAGNET_3x3.withWallLoops(2),
         handleRadius=2,
         wallThickness=nozzleSize * 2,
         gridThickness=nozzleSize * 1.2,
         height=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
-        magnetHeight=magnet3x3height,
         fillCorners=True,
         minimalMeshHeight=0.8,
         fillHandleSides=True,
-        # hexCountLength=10,
         hexCountLength=28,
-        # maxGridShortDiagonal = 7
+        # hexCountLength=22,
+        recessLengthCoefficient = 1,
+        recessWidthCoefficient = 1,
+        slopeLengthCoefficient=0,
+        slopeWidthCoefficient=0
+        # recessLengthCoefficient = 0.25,
+        # recessWidthCoefficient = 0.6,
+        # slopeLengthCoefficient=0.3,
+        # slopeWidthCoefficient=0.15
+
+# maxGridShortDiagonal = 7
         # maxGridShortDiagonal = 20
     ),
 
+    magnets=MAGNET_3x3.withWallLoops(2),
     wallThickness=nozzleSize * 2,
     length=cardBoxDimensions.getBoxLength(),
     width=240 - cardBoxDimensions.getBoxWidth() - companyBoxDimensions.getBoxLength(),
-    lidHeight=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
     gapHeight=cubeSize * 2 / 3,
-    holderAngle=15,
+    holderAngle=12.15,
     height=cubeBoxHeight,
-    playerCubeSpaceWidth=19.5,
-    magnetDiameter=magnet3Diameter + 0.1,
-    magnetHeightBox=magnet3x3height,
-    magnetHeightLid=magnet3x3height,
-    cubeSize=8,
-    thinnestWall=nozzleSize * 2,
-    internalWallRadius=4
 )
 
 markerBoxHeight = 7.2
 
 markerBoxDimensions = markerbox.Dimensions(
     lid = MeshLidDimensions(
+        magnets=MAGNET_3x3,
         handleRadius=2,
         wallThickness = nozzleSize * 3,
         gridThickness = nozzleSize * 1.2,
         height = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
-        magnetHeight = magnet3x3height,
         fillCorners = True,
         minimalMeshHeight = nozzleSize * 4,
         hexCountLength = 24,
+        recessLengthCoefficient = 0.25,
+        recessWidthCoefficient = 0.6,
+        slopeLengthCoefficient=0.3,
+        slopeWidthCoefficient=0.15
         # maxGridShortDiagonal = 7
         # maxGridShortDiagonal = 20
     ),
 
+    magnets=MAGNET_3x3,
     length=174,
     width=92,
     height=markerBoxHeight,
     lidHeightDelta= 1.6,
     floorHeight=0.8,
     padding=2,
-    delta=nozzleSize * 2,
-    magnetDiameter=magnet3Diameter + 0.1,
-    magnetHeightBox=magnet3x3height,
-    magnetCountBox=2,
-    magnetCountLid=2,
 
     markers=CylinderObjectSet(diameter=13.4, height=7),
     stations=CylinderObjectSet(diameter=10.95, height=10.3),
@@ -213,7 +213,7 @@ markerBoxDimensions = markerbox.Dimensions(
     numberFont="C:/Windows/Fonts/arialbd.ttf",
 )
 
-document = FreeCAD.newDocument('18PNW-rev')
+document = FreeCAD.newDocument('1822PNW')
 
 def createTileBoard(*tileNumbers) -> MultiColourFuser:
     imageFactory = Images(hexImageDimensions, document)
@@ -228,8 +228,8 @@ exportItems = [
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
     # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
-    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]
@@ -239,12 +239,12 @@ exportItems = [
 # FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 # FreeCAD.Gui.activeDocument().activeView().viewLeft()
 # FreeCAD.Gui.activeDocument().activeView().viewFront()
-FreeCAD.Gui.activeDocument().activeView().viewTop()
-# FreeCAD.Gui.activeDocument().activeView().viewBottom()
+# FreeCAD.Gui.activeDocument().activeView().viewTop()
+FreeCAD.Gui.activeDocument().activeView().viewBottom()
 # FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 
 exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
 
-exporter.show()
-# exporter.export()
+# exporter.show()
+exporter.export(0)

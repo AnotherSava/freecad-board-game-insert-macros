@@ -2,19 +2,20 @@ from FreeCAD import Vector
 
 
 class SmartSolid:
-    def __init__(self, length: float, width: float, height: float):
-        self.x = 0
-        self.y = 0
-        self.z = 0
-
-        self.xTo = length
-        self.yTo = width
-        self.zTo = height
-
+    def __init__(self, length: float, width: float, height: float, x: float = 0, y: float = 0, z: float = 0):
         self.length = length
         self.width = width
         self.height = height
         self.solid = None
+
+        self.x = x
+        self.y = y
+        self.z = z
+
+        self.xTo = x + length
+        self.yTo = x + width
+        self.zTo = z + height
+
 
     def getVector(self):
         return Vector(self.x, self.y, self.z)
@@ -29,7 +30,7 @@ class SmartSolid:
     def baseVector(self, vector: Vector):
         self.base(vector.x, vector.y, vector.z)
 
-    def base(self, x: float, y: float, z: float):
+    def base(self, x: float = 0, y: float = 0, z: float = 0):
         self.x = x
         self.y = y
         self.z = z

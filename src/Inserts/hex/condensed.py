@@ -1,7 +1,7 @@
 import math
+from dataclasses import dataclass
 from math import tan, cos, sin, radians, ceil, floor
 
-import FreeCAD
 import Part
 from FreeCAD import Vector
 
@@ -11,11 +11,10 @@ from Inserts.common.fuser import Fuser, fuse
 from Inserts.common.geometry import createWire, createVector
 from Inserts.common.hexagon import Hexagon, HexagonConfiguration
 from Inserts.common.hexes import createRoundedHexTile, getDiagonal, getDistanceY, getHexSide
-from Inserts.common.magnets import MagnetDetails, getWidestRadius
+from Inserts.common.magnets import MagnetDetails, getWidestRadius, MagnetDimensions
 from Inserts.common.pencil import Pencil
 from Inserts.hex.configuration import HexTileVertices, HexTileEdges
 from Inserts.hex.images import Images
-from dataclasses import dataclass
 
 
 @dataclass
@@ -242,7 +241,8 @@ class CondensedBoard:
 
         magnetDetails = self.createMagnetLocations(self.dimensions.magnetDiameterFloor)
         height = self.dimensions.pinHeight + self.dimensions.floorThickness
-        bases, holes = magnets.createMagnetHolders(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, True, height, self.dimensions.magnetBaseWall, magnetDetails)
+        magnetDimensions = MagnetDimensions(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, self.dimensions.magnetBaseWall)
+        bases, holes, corners = magnets.createMagnetHolders(magnetDimensions, True, height, magnetDetails)
         fuser.fuse(bases)
         fuser.cut(holes)
 
@@ -360,7 +360,8 @@ class CondensedBoard:
 
         magnetDetails = self.createMagnetLocations(self.dimensions.magnetDiameterFloor)
         height = self.dimensions.getLidHeight()
-        bases, holes = magnets.createMagnetHolders(self.dimensions.magnetDiameter, self.dimensions.magnetHeightCeiling, False, height, self.dimensions.magnetBaseWall, magnetDetails)
+        magnetDimensions = MagnetDimensions(self.dimensions.magnetDiameter, self.dimensions.magnetHeightCeiling, self.dimensions.magnetBaseWall)
+        bases, holes, corners = magnets.createMagnetHolders(magnetDimensions, False, height, magnetDetails)
         fuser.fuse(Colour.BASE, bases)
         fuser.cut(holes)
 

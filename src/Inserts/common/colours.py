@@ -1,11 +1,10 @@
+from enum import IntEnum
 from math import floor
 
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser, fuseAll, getElement
-from enum import IntEnum
-
+from Inserts.common.fuser import Fuser, getElement, fuse
 
 def createColour(red: float, green: float, blue: float) -> int:
     assert 0 <= red <= 1, f"Red value {red} must be in range [0, 1]"
@@ -17,6 +16,7 @@ def createColour(red: float, green: float, blue: float) -> int:
     blueInt = int(floor(blue * 255))
 
     return (redInt << 16) | (greenInt << 8) | blueInt
+
 
 class Colour(IntEnum):
     BLACK = createColour(0.0, 0.0, 0.0)
@@ -38,6 +38,13 @@ class Colour(IntEnum):
     
     def getName(self) -> str:
         return self.name.lower().replace("_", "-")
+
+
+def showSolid(solid: Part.Solid, colour: Colour, transparency: int = 0):
+    feature = Part.show(solid.removeSplitter(), colour.getName())
+    feature.ViewObject.ShapeColor = colour.decode()
+    feature.ViewObject.Transparency = transparency
+
 
 class MultiColourFuser:
     def __init__(self, colour: Colour = None, element = None):
@@ -127,10 +134,8 @@ class MultiColourFuser:
         return self
 
     def getResult(self):
-        return fuseAll(self.fuserByColour.values())
+        return fuse(self.fuserByColour.values())
 
     def show(self, transparency: int = 0):
-        for (color, fuser) in self.fuserByColour.items():
-            feature = Part.show(fuser.solid.removeSplitter(), color.getName())
-            feature.ViewObject.ShapeColor = color.decode()
-            feature.ViewObject.Transparency = transparency
+        for (colour, fuser) in self.fuserByColour.items():
+            showSolid(fuser.solid.removeSplitter(), colour, transparency)
