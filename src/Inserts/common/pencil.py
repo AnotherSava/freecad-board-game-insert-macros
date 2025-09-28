@@ -44,7 +44,6 @@ class Pencil:
         # Clamp dot product to [-1, 1] to handle floating point precision errors
         dotProduct = max(-1.0, min(1.0, dotProduct))
         a = degrees(acos(dotProduct))
-        print(a, 2 * a - 180)
 
         return self.arcWithDestination(destinationVector, 2 * a - 180)
 

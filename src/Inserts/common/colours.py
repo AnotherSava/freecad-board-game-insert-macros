@@ -24,6 +24,7 @@ class Colour(IntEnum):
     BROWN = createColour(0.6, 0.3, 0.1)
     GRAY = createColour(0.5, 0.5, 0.5)
     GREEN = createColour(0.0, 1.0, 0.0)
+    RED = createColour(1.0, 0.0, 0.0)
     WHITE = createColour(1.0, 1.0, 1.0)
     YELLOW = createColour(1.0, 1.0, 0.0)
     BASE = createColour(0.9, 0.9, 0.1)
@@ -40,10 +41,14 @@ class Colour(IntEnum):
         return self.name.lower().replace("_", "-")
 
 
-def showSolid(solid: Part.Solid, colour: Colour, transparency: int = 0):
+def show(element, colour: Colour, transparency: int = 0):
+    solid = getElement(element)
     feature = Part.show(solid.removeSplitter(), colour.getName())
     feature.ViewObject.ShapeColor = colour.decode()
     feature.ViewObject.Transparency = transparency
+
+def showRed(element):
+    show(element, Colour.RED, 0)
 
 
 class MultiColourFuser:
@@ -138,4 +143,4 @@ class MultiColourFuser:
 
     def show(self, transparency: int = 0):
         for (colour, fuser) in self.fuserByColour.items():
-            showSolid(fuser.solid.removeSplitter(), colour, transparency)
+            show(fuser.solid.removeSplitter(), colour, transparency)

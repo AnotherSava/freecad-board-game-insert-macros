@@ -39,6 +39,11 @@ class MagnetDimensions:
         self.thinnestWall = nozzleSize * wallLoops
         return self
 
+    def withDiameterDelta(self, diameterDelta: int):
+        self.diameter += diameterDelta
+        return self
+
+
     def getBaseRadius(self):
         return self.getHoleRadius() + self.thinnestWall
 
@@ -148,9 +153,17 @@ def createWideningCylinder(dimensions: MagnetDimensions, base: bool, wideningOnT
 
     return wideningCylinder
 
-def createMagnetHolders(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight: float, magnetDetails: Iterable[MagnetDetails]) -> (Part.Solid, Part.Solid, Part.Solid):
+def adjust(height: float, mirrorZ: bool = False, *args: Fuser) -> (Fuser, Fuser, Fuser):
+    for element in args:
+        if mirrorZ:
+            element.mirrorZ()
+        element.translate(Vector(0, 0, height))
+
+    return args
+
+def createMagnetHolders(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight: float, magnetDetails: Iterable[MagnetDetails]) -> (Fuser, Fuser, Fuser):
     magnetDetailsList = list(magnetDetails)
-    holes = createMagnetHoles(dimensions, magnetOnTop, magnetDetailsList).solid
+    holes = createMagnetHoles(dimensions, magnetOnTop, magnetDetailsList)
     bases, corners = createMagnetBases(dimensions, magnetOnTop, baseHeight, magnetDetailsList)
 
     for element in [holes, bases, corners]:
@@ -159,9 +172,9 @@ def createMagnetHolders(dimensions: MagnetDimensions, magnetOnTop: bool, baseHei
 
     return bases, holes, corners
 
-def createMagnetBases(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight: float, magnetDetailsList: Iterable[MagnetDetails]) -> (Part.Solid, Part.Solid):
-    bases = fuse(createMagnetBase(dimensions, magnetOnTop, baseHeight, magnetDetails) for magnetDetails in magnetDetailsList)
-    corners = fuse(createMagnetBaseCorners(dimensions, magnetOnTop, baseHeight, magnetDetails.cornerAngleCut, magnetDetails) for magnetDetails in magnetDetailsList)
+def createMagnetBases(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight: float, magnetDetailsList: Iterable[MagnetDetails]) -> (Fuser, Fuser):
+    bases = Fuser(createMagnetBase(dimensions, magnetOnTop, baseHeight, magnetDetails) for magnetDetails in magnetDetailsList)
+    corners = Fuser(createMagnetBaseCorners(dimensions, magnetOnTop, baseHeight, magnetDetails.cornerAngleCut, magnetDetails) for magnetDetails in magnetDetailsList)
     return bases, corners
 
 def createMagnetHoles(dimensions: MagnetDimensions, magnetOnTop: bool, magnetDetailsList: Iterable[MagnetDetails]) -> Fuser:

@@ -145,20 +145,21 @@ cubeBoxHeight = 12.2
 
 cubeBoxDimensions = cubebox.CubeBoxDimensions(
     lid=MeshLidDimensions(
-        magnets=MAGNET_3x3.withWallLoops(2),
+        magnets=MAGNET_3x3.withWallLoops(2).withDiameterDelta(-0.05),
         handleRadius=2,
-        wallThickness=nozzleSize * 2,
+        wallThickness=2.4,
         gridThickness=nozzleSize * 1.2,
         height=cardBoxDimensions.getBoxHeight() - cubeBoxHeight,
         fillCorners=True,
         minimalMeshHeight=0.8,
         fillHandleSides=True,
         hexCountLength=28,
-        # hexCountLength=22,
+        # hexCountLength=16,
         recessLengthCoefficient = 1,
         recessWidthCoefficient = 1,
         slopeLengthCoefficient=0,
-        slopeWidthCoefficient=0
+        slopeWidthCoefficient=0,
+        wallHeight=4.8
         # recessLengthCoefficient = 0.25,
         # recessWidthCoefficient = 0.6,
         # slopeLengthCoefficient=0.3,
@@ -228,8 +229,8 @@ exportItems = [
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
     # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
-    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]
@@ -246,5 +247,6 @@ FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 
 exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
 
-# exporter.show()
+# exporter.show(50)
 exporter.export(0)
+# exporter.publish()
