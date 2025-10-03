@@ -3,13 +3,13 @@ from dataclasses import dataclass
 import Draft
 from FreeCAD import Vector, Document
 
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
-from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.labels import Labels
-from Inserts.common.magnets import createMagnetHoles, MagnetDetails, MagnetDimensions
-from Inserts.common.meshlid import MeshLidDimensions, MeshLid
-from Inserts.common.smartbox import SmartBox
+from common.colours import MultiColourFuser, Colour
+from common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
+from common.fuser import Fuser, fuse
+from common.labels import Labels
+from common.magnets import createMagnetHoles, MagnetDetails, MagnetDimensions
+from inserts.common.meshlid import MeshLidDimensions, MeshLid
+from common.smartbox import SmartBox
 
 
 @dataclass

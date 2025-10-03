@@ -1,10 +1,10 @@
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser
-from Inserts.common.pencil import Pencil
-from Inserts.common.smartbox import SmartBox
-from Inserts.common.geometry import Side
+from common.fuser import Fuser
+from common.pencil import Pencil
+from common.smartbox import SmartBox
+from common.geometry import Side
 from dataclasses import dataclass
 
 @dataclass

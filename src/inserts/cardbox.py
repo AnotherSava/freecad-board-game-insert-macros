@@ -1,10 +1,10 @@
 import Draft
 
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser
-from Inserts.common.geometry import Side, alignSeveralWithin
-from Inserts.common.smartbox import SmartBox
-from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
+from common.colours import MultiColourFuser, Colour
+from common.fuser import Fuser
+from common.geometry import Side, alignSeveralWithin
+from common.smartbox import SmartBox
+from inserts.common.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
 
 

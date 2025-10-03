@@ -4,14 +4,13 @@ import Draft
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.geometry import Side
-from Inserts.common.magnets import MagnetDimensions, createMagnetHolders, RampDetails, CornerAngles
-from Inserts.common.meshlid import MeshLidDimensions, MeshLid
-from Inserts.common.pencil import Pencil
-from Inserts.common.smartbox import SmartBox
-from Inserts.common.smartsolid import SmartSolid
+from common.colours import MultiColourFuser, Colour
+from common.fuser import Fuser
+from common.magnets import MagnetDimensions, createMagnetHolders, CornerAngles
+from inserts.common.meshlid import MeshLidDimensions, MeshLid
+from common.pencil import Pencil
+from common.smartbox import SmartBox
+from common.smartsolid import SmartSolid
 
 
 @dataclass

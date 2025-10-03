@@ -2,12 +2,11 @@ import Part
 from FreeCAD import Vector
 from Part import Solid
 
-from Inserts.common.fuser import Fuser
-from Inserts.common.geometry import Side
-from Inserts.common.magnets import MagnetDetails, RampDetails
-from Inserts.common.pencil import Pencil
-from Inserts.common.smartsolid import SmartSolid
-from enum import IntEnum
+from common.fuser import Fuser
+from common.geometry import Side
+from common.magnets import MagnetDetails, RampDetails
+from common.pencil import Pencil
+from common.smartsolid import SmartSolid
 
 
 class SmartBox(SmartSolid):

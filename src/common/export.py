@@ -3,7 +3,7 @@ import FreeCAD
 import subprocess
 import os
 import glob
-from Inserts.common.colours import Colour, show
+from common.colours import Colour, show
 from dataclasses import dataclass
 
 

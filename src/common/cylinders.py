@@ -3,8 +3,8 @@ from math import cos, radians
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import createVector
-from Inserts.common.smartsolid import SmartSolid
+from common.geometry import createVector
+from common.smartsolid import SmartSolid
 from dataclasses import dataclass
 
 

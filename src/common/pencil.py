@@ -1,9 +1,9 @@
-from math import tan, radians, degrees, acos, sin, cos
+from math import radians, degrees, acos, sin, cos
 
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.geometry import shiftVector
+from common.geometry import shiftVector
 
 
 class Pencil:

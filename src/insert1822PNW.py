@@ -2,7 +2,8 @@ import importlib
 
 import FreeCAD
 
-from Inserts.common.magnets import MAGNET_3x3
+from inserts.cardbox import CardBox
+from common.magnets import MAGNET_3x3
 from common import freecad
 
 importlib.reload(freecad)
@@ -12,16 +13,15 @@ clearLogs()
 closeAllDocuments()
 reloadProjectModules()
 
-from Inserts.common.meshlid import MeshLidDimensions
-from Inserts import company, cardbox, cubebox, markerbox
-from Inserts.common.colours import MultiColourFuser
-from Inserts.common.export import ExportObject, Exporter
-from Inserts.common.smartbox import Side
-from Inserts.company import CylinderObjectSet
-from Inserts.cubebox import CubeBox
-from Inserts.hex.condensed import CondensedBoard, GridDimensions
-from Inserts.hex.images import HexImageDimensions, Images
-from Inserts.lidbox import LidDimensions
+from inserts.common.meshlid import MeshLidDimensions
+from inserts import company, cardbox, cubebox, markerbox
+from common.colours import MultiColourFuser
+from common.export import ExportObject, Exporter
+from common.smartbox import Side
+from inserts.company import CylinderObjectSet
+from inserts.hex.condensed import CondensedBoard, GridDimensions
+from inserts.hex.images import HexImageDimensions, Images
+from inserts.common.lidbox import LidDimensions
 from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
 
 # reloadProjectModules()
@@ -189,13 +189,12 @@ markerBoxDimensions = markerbox.Dimensions(
         height = cardBoxDimensions.getBoxHeight() - markerBoxHeight,
         fillCorners = True,
         minimalMeshHeight = nozzleSize * 4,
-        hexCountLength = 24,
+        hexCountLength = 14,
+        # hexCountLength = 24,
         recessLengthCoefficient = 0.25,
         recessWidthCoefficient = 0.6,
         slopeLengthCoefficient=0.3,
         slopeWidthCoefficient=0.15
-        # maxGridShortDiagonal = 7
-        # maxGridShortDiagonal = 20
     ),
 
     magnets=MAGNET_3x3,
@@ -228,9 +227,9 @@ exportItems = [
     # ExportObject("tile-tray4", lambda: createTileBoard("X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")),
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
-    # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
+    ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
     # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
-    ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]
@@ -247,6 +246,6 @@ FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 
 exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
 
-# exporter.show(50)
-exporter.export(0)
+exporter.show(10)
+# exporter.export(0)
 # exporter.publish()

@@ -5,15 +5,13 @@ from typing import Iterable
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.colours import MultiColourFuser, Colour, showRed
-from Inserts.common.fuser import Fuser
-from Inserts.common.hexagon import Hexagon, HexagonConfiguration
-from Inserts.common.hexes import getDistanceY
-from Inserts.common.magnets import MagnetDetails, MagnetDimensions, createMagnetHolders, adjust
-from Inserts.common.primitives import createTaperedBox
-from Inserts.common.smartbox import SmartBox
-from Inserts.common.smartsolid import SmartSolid
-from Inserts.hex.configuration import HexTileVertices
+from common.colours import MultiColourFuser, Colour
+from common.fuser import Fuser
+from common.hexagon import Hexagon, HexagonConfiguration, HexTileVertices, getDistanceY
+from common.magnets import MagnetDetails, MagnetDimensions, createMagnetHolders, adjust
+from common.primitives import createTaperedBox
+from common.smartbox import SmartBox
+from common.smartsolid import SmartSolid
 from common.math import advancedRound
 
 

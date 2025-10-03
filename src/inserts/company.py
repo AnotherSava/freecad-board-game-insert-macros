@@ -1,10 +1,9 @@
-import Part
 from FreeCAD import Vector
 
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
-from Inserts.common.fuser import Fuser
-from Inserts.lidbox import SlidingLidBox, LidBoxDimensions
+from common.colours import MultiColourFuser, Colour
+from common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
+from common.fuser import Fuser
+from inserts.common.lidbox import SlidingLidBox, LidBoxDimensions
 from dataclasses import dataclass
 
 

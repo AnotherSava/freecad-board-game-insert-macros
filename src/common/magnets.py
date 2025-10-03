@@ -6,8 +6,8 @@ from typing import Iterable
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.pencil import Pencil
+from common.fuser import Fuser
+from common.pencil import Pencil
 from constants import nozzleSize, tolerance, magnet3Diameter, magnet3x3height, magnet2Diameter, magnet2x3height
 
 wideningCoefficient = 1.1

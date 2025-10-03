@@ -1,6 +1,6 @@
 from FreeCAD import Vector, Part
 
-from Inserts.common.pencil import Pencil
+from common.pencil import Pencil
 
 
 def createTaperedBox(bottomLength: float, bottomWidth: float, height: float, topLength: float, topWidth: float):

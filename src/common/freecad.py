@@ -8,9 +8,9 @@ from PySide2 import QtWidgets
 def reloadProjectModules():
     reloadedModules = []
 
-    for moduleName in [name for name in sys.modules.keys() if (name.startswith('Inserts') or name.startswith('common') or name.startswith('constants')) and sys.modules[name] is not None]:
+    for moduleName in [name for name in sys.modules.keys() if (name.startswith('inserts') or name.startswith('common') or name.startswith('constants')) and sys.modules[name] is not None]:
         importlib.reload(sys.modules[moduleName])
-        reloadedModules.append(moduleName.removeprefix("Inserts."))
+        reloadedModules.append(moduleName.removeprefix("inserts."))
 
     if reloadedModules:
         print(f"Reloaded modules: {', '.join(reloadedModules)}")

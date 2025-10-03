@@ -4,7 +4,7 @@ from math import floor
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.fuser import Fuser, getElement, fuse
+from common.fuser import Fuser, getElement, fuse
 
 def createColour(red: float, green: float, blue: float) -> int:
     assert 0 <= red <= 1, f"Red value {red} must be in range [0, 1]"

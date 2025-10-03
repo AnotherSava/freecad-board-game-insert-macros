@@ -6,15 +6,14 @@ from typing import Callable
 import Part
 from FreeCAD import Vector, Document
 
-from Inserts.common import geometry
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.geometry import createWire, createVector
-from Inserts.common.hexes import getHexSide
-from Inserts.common.labels import Labels
-from Inserts.common.pencil import Pencil
-from Inserts.common.smartbox import SmartBox
-from Inserts.hex.configuration import HexTileVertices, HexTileEdges, HexTileManifestEdges
+from common import geometry
+from common.colours import MultiColourFuser, Colour
+from common.fuser import Fuser, fuse
+from common.geometry import createWire, createVector
+from common.labels import Labels
+from common.pencil import Pencil
+from common.smartbox import SmartBox
+from common.hexagon import HexTileManifestEdges, HexTileVertices, HexTileEdges, getHexSide
 
 
 @dataclass

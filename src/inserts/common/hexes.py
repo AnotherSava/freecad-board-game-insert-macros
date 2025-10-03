@@ -3,19 +3,9 @@ from math import radians, tan, sin, cos
 import Part
 from FreeCAD import Vector
 
-from Inserts.common.pencil import Pencil
-from Inserts.hex.configuration import HexTileVertices, HexTileEdges
+from common.pencil import Pencil
+from common.hexagon import HexTileVertices, HexTileEdges, getHexSide
 
-
-def getHexSide(shortDiagonal: float):
-    return shortDiagonal * tan(radians(30))
-
-def getDiagonal(shortDiagonal: float = None):
-    return shortDiagonal / cos(radians(30))
-
-def getDistanceY(shortDiagonal: float, shortDiagonalGap: float, diagonalGap: float = None):
-    diagonalGap = shortDiagonalGap if diagonalGap is None else diagonalGap
-    return diagonalGap / cos(radians(30)) - shortDiagonalGap / 2 * tan(radians(30)) + getDiagonal(shortDiagonal) / 2 + getHexSide(shortDiagonal) / 2
 
 def drawAroundVertex(pencil: Pencil, vertex: HexTileVertices, roundingRadius: float, isRound: bool):
     roundingDelta = roundingRadius * tan(radians(30))

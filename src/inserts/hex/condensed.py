@@ -5,16 +5,15 @@ from math import tan, cos, sin, radians, ceil, floor
 import Part
 from FreeCAD import Vector
 
-from Inserts.common import magnets
-from Inserts.common.colours import MultiColourFuser, Colour
-from Inserts.common.fuser import Fuser, fuse
-from Inserts.common.geometry import createWire, createVector
-from Inserts.common.hexagon import Hexagon, HexagonConfiguration
-from Inserts.common.hexes import createRoundedHexTile, getDiagonal, getDistanceY, getHexSide
-from Inserts.common.magnets import MagnetDetails, getWidestRadius, MagnetDimensions
-from Inserts.common.pencil import Pencil
-from Inserts.hex.configuration import HexTileVertices, HexTileEdges
-from Inserts.hex.images import Images
+from common import magnets
+from common.colours import MultiColourFuser, Colour
+from common.fuser import Fuser, fuse
+from common.geometry import createWire, createVector
+from common.hexagon import Hexagon, HexagonConfiguration, HexTileVertices, HexTileEdges, getHexSide, getDiagonal, getDistanceY
+from inserts.common.hexes import createRoundedHexTile
+from common.magnets import MagnetDetails, getWidestRadius, MagnetDimensions
+from common.pencil import Pencil
+from inserts.hex.images import Images
 
 
 @dataclass
