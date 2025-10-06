@@ -1,19 +1,104 @@
+from dataclasses import dataclass
+from enum import IntEnum
+
 import Part
 from FreeCAD import Vector
 from Part import Solid
 
 from common.fuser import Fuser
-from common.geometry import Side
+from common.geometry import Side, shiftVector
 from common.magnets import MagnetDetails, RampDetails
 from common.pencil import Pencil
 from common.smartsolid import SmartSolid
+
+
+class CuboidEdges(IntEnum):
+    NB = 1
+    WB = 2
+    SB = 3
+    EB = 4
+    NT = 5
+    WT = 6
+    ST = 7
+    ET = 8
+    NW = 9
+    SW = 10
+    SE = 11
+    NE = 12
+
+@dataclass
+class RoundedLengths:
+    ne: float = 0
+    nw: float = 0
+    sw: float = 0
+    se: float = 0
+
+    @classmethod
+    def createSimple(cls, length: float):
+        return RoundedLengths(length, length, length, length)
+
+    @classmethod
+    def createComplex(cls, ne: float, nw: float = None, sw:float = None, se: float = None):
+        assert nw is not None or sw is None and se is None
+
+        return RoundedLengths(ne, ne if nw is None else nw, ne if sw is None else sw, ne if se is None else se)
 
 
 class SmartBox(SmartSolid):
     def __init__(self, length: float, width: float, height: float, x: float = 0, y: float = 0, z: float = 0):
         super().__init__(length, width, height, x, y, z)
 
-        self.solid = Part.makeBox(length, width, height, Vector(x, y, z))
+        self.roundedFront = RoundedLengths()
+        self.roundedTop = RoundedLengths()
+        self.roundedRight = RoundedLengths()
+
+        self.updateBox()
+
+    def withRoundedTop(self, ne: float, nw: float = None, sw:float = None, se: float = None):
+        self.roundedTop = RoundedLengths.createComplex(ne, nw, sw, se)
+        self.updateBox()
+        return self
+
+    def withRoundedFront(self, ne: float, nw: float = None, sw:float = None, se: float = None):
+        self.roundedFront = RoundedLengths.createComplex(ne, nw, sw, se)
+        self.updateBox()
+        return self
+
+    def withRoundedRight(self, ne: float, nw: float = None, sw:float = None, se: float = None):
+        self.roundedRight = RoundedLengths.createComplex(ne, nw, sw, se)
+        self.updateBox()
+        return self
+
+    def updateBox(self):
+        top = self.createRoundedWire(self.length, self.width, self.roundedTop).extrude(self.height)
+        front = self.createRoundedWire(self.length, self.height, self.roundedFront).extrudeY(self.width)
+        right = self.createRoundedWire(self.width, self.height, self.roundedRight).extrudeX(self.length)
+
+        self.solid = top.common(front).common(right)
+        self.solid.translate(Vector(self.x, self.y, self.z))
+
+    def createRoundedAngle(self, pencil: Pencil, length1: float, angle1: float, length2: float, angle2: float, roundedLength: float) -> Pencil:
+        if roundedLength:
+            pencil.draw(length1 - roundedLength, angle1)
+            destination = shiftVector(pencil.location, roundedLength, angle1, roundedLength, angle2)
+            angle = angle1 + 90 if (angle2 - angle1) % 360 > 180 else angle1 - 90
+            pencil.arcWithAngleToCentreAbs(angle, destination)
+            pencil.draw(length2 - roundedLength, angle2)
+        else:
+            pencil.draw(length1, angle1)
+            pencil.draw(length2, angle2)
+
+        return pencil
+
+    def createRoundedWire(self, length: float, width: float, roundedLengths: RoundedLengths) -> Pencil:
+        pencil = Pencil(Vector(length, width / 2))
+
+        self.createRoundedAngle(pencil, width / 2, 0, length / 2, 90, roundedLengths.ne)
+        self.createRoundedAngle(pencil, length / 2, 90, width / 2, 180, roundedLengths.nw)
+        self.createRoundedAngle(pencil, width / 2, 180, length / 2, 270, roundedLengths.sw)
+        self.createRoundedAngle(pencil, length / 2, 270, width / 2, 0, roundedLengths.se)
+
+        return pencil
 
     def addCut(self, side: Side, length: float, extraWidth: float, height: float, shift: float = 0):
         preCutCoefficient = 0.2

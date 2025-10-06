@@ -5,4 +5,5 @@ tolerance = nozzleSize / 4
 magnet3Diameter = 3.0
 magnet2Diameter = 2.0
 magnet3x3height = 2.73
+magnet3x2height = 1.78
 magnet2x3height = 2.61

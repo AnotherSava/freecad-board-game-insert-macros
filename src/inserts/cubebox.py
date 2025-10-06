@@ -58,7 +58,7 @@ class CubeBox(SmartBox):
         pencil.down(self.dimensions.height - self.dimensions.gapHeight - self.dimensions.wallThickness)
         pencil.arcWithCentreDirection(Vector(0, 1), Vector(self.dimensions.wallThickness - self.box.width, self.dimensions.height - self.dimensions.gapHeight - self.dimensions.wallThickness))
         pencil.up(self.dimensions.gapHeight)
-        return Fuser(pencil.extrudeX(self.dimensions.length)).translate(Vector(0, self.box.yTo, self.box.zTo))
+        return Fuser(pencil.extrudeX(self.dimensions.length, Vector(0, self.box.yTo, self.box.zTo)))
 
     def createMagnetLocations(self, lid: bool):
         widerRadius = self.dimensions.magnets.getWiderBaseRadius()

@@ -3,7 +3,7 @@ from math import radians, degrees, acos, sin, cos
 import Part
 from FreeCAD import Vector
 
-from common.geometry import shiftVector
+from common.geometry import shiftVector, createVector
 
 
 class Pencil:
@@ -37,6 +37,12 @@ class Pencil:
     def arc(self, midpointVector: Vector, destinationVector: Vector):
         return self.arcAbs(self.location + midpointVector, self.location + destinationVector)
 
+    def arcWithAngleToCentre(self, angleToCentre: float, destinationVector: Vector):
+        return self.arcWithCentreDirection(createVector(1, angleToCentre), destinationVector)
+
+    def arcWithAngleToCentreAbs(self, angleToCentre: float, destination: Vector):
+        return self.arcWithCentreDirectionAbs(createVector(1, angleToCentre), destination)
+
     def arcWithCentreDirection(self, centreDirection: Vector, destinationVector: Vector):
         # Create copies and normalize to preserve original vectors
         # Calculate angle between vectors using dot product
@@ -46,6 +52,9 @@ class Pencil:
         a = degrees(acos(dotProduct))
 
         return self.arcWithDestination(destinationVector, 2 * a - 180)
+
+    def arcWithCentreDirectionAbs(self, centreDirection: Vector, destination: Vector):
+        return self.arcWithCentreDirection(centreDirection, destination - self.location)
 
     # create arc with specific destination and angle measure
     def arcWithDestinationAbs(self, destination: Vector, angle: float):
@@ -127,13 +136,14 @@ class Pencil:
 
     def extrudeX(self, height: float, transpose: Vector = Vector()):
         solid = self.extrude(height)
-        solid.rotate(self.start, Vector(1, 0, 0), 90).rotate(self.start, Vector(0, 0, 1), 90)
+        solid.rotate(Vector(), Vector(1, 0, 0), 90).rotate(Vector(), Vector(0, 0, 1), 90)
         solid.translate(transpose)
         return solid
 
-    def extrudeY(self, height: float):
+    def extrudeY(self, height: float, transpose: Vector = Vector()):
         solid = self.extrude(-height)
-        solid.rotate(self.start, Vector(1, 0, 0), 90)
+        solid.rotate(Vector(), Vector(1, 0, 0), 90)
+        solid.translate(transpose)
         return solid
 
     def createWire(self):

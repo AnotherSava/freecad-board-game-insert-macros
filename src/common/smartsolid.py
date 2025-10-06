@@ -21,14 +21,14 @@ class SmartSolid:
         return Vector(self.x, self.y, self.z)
 
     def translateVector(self, vector: Vector):
-        self.baseVector(self.getVector() + vector)
+        return self.baseVector(self.getVector() + vector)
 
     def translate(self, x: float, y: float = 0, z: float = 0) -> 'SmartSolid':
         self.base(self.x + x, self.y + y, self.z + z)
         return self
 
     def baseVector(self, vector: Vector):
-        self.base(vector.x, vector.y, vector.z)
+        return self.base(vector.x, vector.y, vector.z)
 
     def base(self, x: float = 0, y: float = 0, z: float = 0):
         self.x = x
@@ -40,3 +40,5 @@ class SmartSolid:
         self.zTo = z + self.height
 
         self.solid.Placement.Base = Vector(x, y, z)
+
+        return self

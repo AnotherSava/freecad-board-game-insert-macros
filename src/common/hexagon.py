@@ -138,7 +138,7 @@ class HexagonConfiguration:
         return (cwEdge.getUnitVector(ccwOffset) - ccwEdge.getUnitVector(cwOffset)) / cos(radians(30)) * multiplier
 
 class Hexagon:
-    def __init__(self, shortDiagonal: float, height: float, centre: Vector = Vector()):
+    def __init__(self, shortDiagonal: float, height: float = 0, centre: Vector = Vector()):
         self.shortDiagonal = shortDiagonal
         self.height = height
         self.centre = centre
@@ -160,12 +160,14 @@ class Hexagon:
         wire = createWire(*(self.getVertex(vertex, multiplier) for vertex in HexTileVertices.iterate()))
         return extrudeWire(wire, self.height)
 
-    def createWalledSolid(self, config: HexagonConfiguration) -> Part.Solid:
-        wire = createWire(*(self.getWallsIntersection(vertex, config) for vertex in HexTileVertices.iterate()))
-        return extrudeWire(wire, self.height)
+    def createWalledWire(self, config: HexagonConfiguration = None) -> Part.Wire:
+        return createWire(*(self.getWallsIntersection(vertex, config) for vertex in HexTileVertices.iterate()))
 
-    def getWallsIntersection(self, vertex: HexTileVertices, config: HexagonConfiguration, multiplier: float = 1) -> Vector:
-        return self.getVertex(vertex, multiplier) + config.getVertexOffset(vertex, multiplier)
+    def createWalledSolid(self, config: HexagonConfiguration) -> Part.Solid:
+        return extrudeWire(self.createWalledWire(config), self.height)
+
+    def getWallsIntersection(self, vertex: HexTileVertices, config: HexagonConfiguration = None, multiplier: float = 1) -> Vector:
+        return self.getVertex(vertex, multiplier) + Vector() if config is None else config.getVertexOffset(vertex, multiplier)
 
     def getVertex(self, vertex: HexTileVertices, multiplier: float = 1) -> Vector:
         return self.getVertexVector(vertex, multiplier) + self.centre

@@ -19,9 +19,14 @@ class Side(IntEnum):
 def createVector(length: float, angle: float) -> Vector:
     return Vector(-length * sin(radians(angle)), length * cos(radians(angle)))
 
-# angle is measured in degrees CCW from axis Y
-def shiftVector(vector: Vector, length: float, angle: float) -> Vector:
-    return vector + createVector(length, angle)
+# args = series of lengths and angles, where angles are measured in degrees CCW from axis Y
+def shiftVector(vector: Vector, *args: float) -> Vector:
+    assert len(args) >= 2 and len(args) % 2 == 0
+    result = vector
+    for i in range(0, len(args), 2):
+        result += createVector(args[i], args[i + 1])
+
+    return result
 
 def createWire(*points) -> Wire:
     return Wire([Part.makeLine(points[i], points[(i + 1) % len(points)]) for i in range(len(points))])

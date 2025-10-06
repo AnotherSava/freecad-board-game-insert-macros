@@ -133,12 +133,13 @@ class SlidingLidBox(SmartBox):
     def createLidSupport(self) -> Part.Solid:
         supportHeight = self.dimensions.getInnerHeight() - self.dimensions.lid.lidHeight - self.dimensions.lid.aboveLidHeight
 
-        pencil = Pencil(Vector(-self.dimensions.lid.supportThickness / 2, 0, self.dimensions.floorHeight + self.dimensions.getRecessDepth()))
+        pencil = Pencil()
         pencil.arcWithRadius(supportHeight, -90, -90)
         pencil.right(self.dimensions.lid.supportLength - supportHeight)
         pencil.down(supportHeight)
 
-        return self.orientBasedOnLid(pencil.extrudeX(self.dimensions.lid.supportThickness))
+        support = pencil.extrudeX(self.dimensions.lid.supportThickness, Vector(-self.dimensions.lid.supportThickness / 2, 0, self.dimensions.floorHeight + self.dimensions.getRecessDepth()))
+        return self.orientBasedOnLid(support)
 
     def orientBasedOnLid(self, solid: Part.Solid) -> Part.Solid:
         return solid.rotate(Vector(), Vector(0, 0, 1), self.dimensions.lid.lidSlideInDirection.value + 180).translate(self.dimensions.lid.getLidFrontSideCenter())

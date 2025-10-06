@@ -2,9 +2,8 @@ import importlib
 
 import FreeCAD
 
-from inserts.cardbox import CardBox
-from common.magnets import MAGNET_3x3
 from common import freecad
+from inserts.cubebox import CubeBox
 
 importlib.reload(freecad)
 from common.freecad import reloadProjectModules, clearLogs, closeAllDocuments
@@ -13,18 +12,20 @@ clearLogs()
 closeAllDocuments()
 reloadProjectModules()
 
+from inserts.cardbox import CardBox
+from common.magnets import MAGNET_3x3
 from inserts.common.meshlid import MeshLidDimensions
 from inserts import company, cardbox, cubebox, markerbox
 from common.colours import MultiColourFuser
 from common.export import ExportObject, Exporter
 from common.smartbox import Side
-from inserts.company import CylinderObjectSet
+from inserts.company import CylinderObjectSet, CompanyBox
 from inserts.hex.condensed import CondensedBoard, GridDimensions
 from inserts.hex.images import HexImageDimensions, Images
 from inserts.common.lidbox import LidDimensions
 from constants import nozzleSize, magnet3x3height, magnet2x3height, magnet3Diameter, magnet2Diameter
 
-# reloadProjectModules()
+reloadProjectModules()
 
 gridDimensions = GridDimensions(
     hexShortDiagonal=28,
@@ -227,8 +228,8 @@ exportItems = [
     # ExportObject("tile-tray4", lambda: createTileBoard("X11", "X16", 895, 51, 169, 60, None, "X17", "PNW3", None, "PNW4", "PNW5", "PNW1", "PNW2", "P1", "P2")),
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
-    ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
+    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
     # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
@@ -244,7 +245,7 @@ FreeCAD.Gui.activeDocument().activeView().viewIsometric()
 # FreeCAD.Gui.runCommand('Std_DrawStyle', 6)
 
 
-exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\export\\1822 PNW", *exportItems)
+exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\1822 PNW", *exportItems)
 
 exporter.show(10)
 # exporter.export(0)

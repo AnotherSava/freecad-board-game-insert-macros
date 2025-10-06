@@ -1,10 +1,11 @@
+import glob
+import os
+import subprocess
+from dataclasses import dataclass
+
 import FreeCAD
 
-import subprocess
-import os
-import glob
 from common.colours import Colour, show
-from dataclasses import dataclass
 
 
 @dataclass
@@ -16,9 +17,16 @@ class Exporter:
     def __init__(self, folder: str, *exportItems: ExportObject):
         self.folder = folder
         self.exportItems = exportItems
+        self.bound = None
+
+    def withBound(self, bound):
+        self.bound = bound
+        return self
 
     def createFileName(self, exportObject: ExportObject, colour: Colour, githubCommit: str, subFolder: str) -> str:
-        return f"{self.folder}\\{subFolder}\\{exportObject.prefix}-{colour.getName()}-{githubCommit}.stl"
+        absPath = f"{self.folder}\\{subFolder}\\{exportObject.prefix}-{colour.getName()}-{githubCommit}.stl"
+        os.makedirs(os.path.dirname(absPath), exist_ok=True) # create a folder if needed
+        return absPath
 
     def deleteAllStlFilesWithPrefix(self, subFolder: str, prefix: str):
         scriptDirectory = os.path.join(self.folder, subFolder)
@@ -50,6 +58,8 @@ class Exporter:
 
             print(f"Creating {exportObject.prefix}...")
             multiColouredFuser = exportObject.generator()
+            if self.bound:
+                multiColouredFuser.common(self.bound)
 
             for (colour, f) in multiColouredFuser.fuserByColour.items():
                 filename = self.createFileName(exportObject, colour, githubCommit, subFolder)
@@ -65,6 +75,9 @@ class Exporter:
 
     def show(self, transparency: int = 0):
         for item in self.exportItems:
-            item.generator().show(transparency)
+            fuser = item.generator()
+            if self.bound:
+                fuser.common(self.bound)
+            fuser.show(transparency)
 
         FreeCAD.Gui.SendMsgToActiveView('ViewFit')

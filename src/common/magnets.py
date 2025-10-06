@@ -3,12 +3,13 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Iterable
 
+import FreeCAD
 import Part
 from FreeCAD import Vector
 
 from common.fuser import Fuser
 from common.pencil import Pencil
-from constants import nozzleSize, tolerance, magnet3Diameter, magnet3x3height, magnet2Diameter, magnet2x3height
+from constants import nozzleSize, tolerance, magnet3Diameter, magnet3x3height, magnet2Diameter, magnet2x3height, magnet3x2height
 
 wideningCoefficient = 1.1
 wideningPartHeightCoefficient = 1 / 3
@@ -69,6 +70,12 @@ MAGNET_3x3 = MagnetDimensions(
     thinnestWall=nozzleSize
 )
 
+MAGNET_3x2 = MagnetDimensions(
+    diameter=magnet3Diameter + tolerance,
+    height=magnet3x2height,
+    thinnestWall=nozzleSize
+)
+
 MAGNET_2x3 = MagnetDimensions(
     diameter=magnet2Diameter + tolerance,
     height=magnet2x3height,
@@ -85,6 +92,7 @@ class MagnetDetails:
     cornerHeight: float = None
     ramp: RampDetails = None
     adjacentToWidening: bool = True
+    holeVector: Vector = None
 
 
 def getWidestRadius(magnetDiameter: float, delta: float = 0):
@@ -131,7 +139,9 @@ def createMagnetBase(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeight
     base = createWideningCylinder(dimensions, True, magnetOnTop, details, baseHeight)
     baseCorners = createMagnetBaseCorners(dimensions, magnetOnTop, baseHeight, details.cornerAngle, details)
 
-    return fuser.translate(details.centre).fuse(baseCorners, base)
+    solid = fuser.translate(details.centre).fuse(baseCorners, base)
+
+    return orient(solid, details)
 
 def createWideningCylinder(dimensions: MagnetDimensions, base: bool, wideningOnTop: bool, details: MagnetDetails, fixedHeight: float = None) -> Part.Solid:
     radius = dimensions.getBaseRadius() if base else dimensions.getHoleRadius()
@@ -152,6 +162,13 @@ def createWideningCylinder(dimensions: MagnetDimensions, base: bool, wideningOnT
     wideningCylinder.translate(details.centre)
 
     return wideningCylinder
+
+def orient(element, details: MagnetDetails):
+    if details.holeVector is None:
+        return element
+
+    rotation = FreeCAD.Rotation(Vector(0, 0, 1), details.holeVector)
+    return element.rotate(details.centre, rotation.Axis, math.degrees(rotation.Angle))
 
 def adjust(height: float, mirrorZ: bool = False, *args: Fuser) -> (Fuser, Fuser, Fuser):
     for element in args:
@@ -177,5 +194,10 @@ def createMagnetBases(dimensions: MagnetDimensions, magnetOnTop: bool, baseHeigh
     corners = Fuser(createMagnetBaseCorners(dimensions, magnetOnTop, baseHeight, magnetDetails.cornerAngleCut, magnetDetails) for magnetDetails in magnetDetailsList)
     return bases, corners
 
+def createMagnetHole(dimensions: MagnetDimensions, base: bool, wideningOnTop: bool, details: MagnetDetails, fixedHeight: float = None) -> Part.Solid:
+    hole = createWideningCylinder(dimensions, base, wideningOnTop, details)
+    return orient(hole, details)
+
+
 def createMagnetHoles(dimensions: MagnetDimensions, magnetOnTop: bool, magnetDetailsList: Iterable[MagnetDetails]) -> Fuser:
-    return Fuser(createWideningCylinder(dimensions, False, magnetOnTop, magnetDetails) for magnetDetails in magnetDetailsList)
+    return Fuser(createMagnetHole(dimensions, False, magnetOnTop, magnetDetails) for magnetDetails in magnetDetailsList)
