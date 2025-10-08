@@ -241,7 +241,7 @@ class CondensedBoard:
         magnetDetails = self.createMagnetLocations(self.dimensions.magnetDiameterFloor)
         height = self.dimensions.pinHeight + self.dimensions.floorThickness
         magnetDimensions = MagnetDimensions(self.dimensions.magnetDiameterFloor, self.dimensions.magnetHeightFloor, self.dimensions.magnetBaseWall)
-        bases, holes, corners = magnets.createMagnetHolders(magnetDimensions, True, height, magnetDetails)
+        bases, holes, cornersToCut = magnets.createMagnetHolders(magnetDimensions, height, magnetDetails)
         fuser.fuse(bases)
         fuser.cut(holes)
 
@@ -360,7 +360,7 @@ class CondensedBoard:
         magnetDetails = self.createMagnetLocations(self.dimensions.magnetDiameterFloor)
         height = self.dimensions.getLidHeight()
         magnetDimensions = MagnetDimensions(self.dimensions.magnetDiameter, self.dimensions.magnetHeightCeiling, self.dimensions.magnetBaseWall)
-        bases, holes, corners = magnets.createMagnetHolders(magnetDimensions, False, height, magnetDetails)
+        bases, holes, cornersToCut = magnets.createMagnetHolders(magnetDimensions, height, magnetDetails)
         fuser.fuse(Colour.BASE, bases)
         fuser.cut(holes)
 

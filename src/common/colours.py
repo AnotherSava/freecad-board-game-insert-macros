@@ -43,12 +43,16 @@ class Colour(IntEnum):
 
 def show(element, colour: Colour, transparency: int = 0):
     solid = getElement(element)
-    feature = Part.show(solid.removeSplitter(), colour.getName())
-    feature.ViewObject.ShapeColor = colour.decode()
-    feature.ViewObject.Transparency = transparency
+    if solid:
+        feature = Part.show(solid.removeSplitter(), colour.getName())
+        feature.ViewObject.ShapeColor = colour.decode()
+        feature.ViewObject.Transparency = transparency
 
 def showRed(element):
     show(element, Colour.RED, 0)
+
+def showBlue(element):
+    show(element, Colour.BLUE, 0)
 
 
 class MultiColourFuser:

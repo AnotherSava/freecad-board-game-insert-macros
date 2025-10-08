@@ -3,11 +3,12 @@ from dataclasses import dataclass
 import Draft
 from FreeCAD import Vector, Document
 
-from common.colours import MultiColourFuser, Colour
+from common.colours import MultiColourFuser, Colour, showRed
 from common.cylinders import MultiCylinderHolder, CylinderObjectSet, DistinctCylinderHolder
 from common.fuser import Fuser, fuse
 from common.labels import Labels
 from common.magnets import createMagnetHoles, MagnetDetails, MagnetDimensions
+from constants import magnet2Diameter
 from inserts.common.meshlid import MeshLidDimensions, MeshLid
 from common.smartbox import SmartBox
 
@@ -60,7 +61,6 @@ class Dimensions:
         return self.floorHeight + self.getMaxObjectsHeight() - self.markers.height
 
 
-# Holder for the following items: minor company stations and stock markers, company charters (as a lid)
 class MarkerBox(SmartBox):
     def __init__(self, dimensions: Dimensions, document: Document):
         super().__init__(dimensions.length, dimensions.width, dimensions.height)
@@ -72,7 +72,9 @@ class MarkerBox(SmartBox):
         box = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height)
 
         labels, markersAndStationsRecess = self.createMarkersAndStations()
-        magnetHoles = createMagnetHoles(self.dimensions.magnets, True, self.createCustomMagnetDetails()).translate(Vector(0, 0, box.zTo))
+        magnetHoles = createMagnetHoles(self.dimensions.magnets, self.createCustomMagnetDetails(Vector(0, 0, -1))).translate(Vector(0, 0, box.zTo))
+
+        showRed(magnetHoles)
 
         fuser = MultiColourFuser(Colour.WHITE, labels)
         fuser.fuse(Colour.BASE, box).cut(markersAndStationsRecess, magnetHoles)
@@ -82,7 +84,7 @@ class MarkerBox(SmartBox):
     def createLid(self) -> MultiColourFuser:
         lid = MeshLid(self.dimensions.lid)
 
-        return lid.createLid(self.createMagnetDetails())
+        return lid.createLid(self.createCustomMagnetDetails())
 
     def createMarkersAndStations(self):
         paddingVerticalCentre = (self.dimensions.width - self.dimensions.padding * 2 - self.dimensions.stations.diameter * 2 - self.dimensions.markers.diameter * 2) * 3 / 10
@@ -129,9 +131,9 @@ class MarkerBox(SmartBox):
 
         return labels, fuse(markersShorter, stationsShorter, stationsLonger, markersLonger, privateRailways, cityTokens, roundMarker, specialTokens)
 
-    def createCustomMagnetDetails(self) -> list[MagnetDetails]:
-        cornerMagnets = self.createCornerMagnetDetails(self.dimensions.magnets.getWiderBaseRadius())
-        middleMagnets = [MagnetDetails(Vector(self.dimensions.length / 4 * (i + 0.5), self.dimensions.width / 2)) for i in range(4)]
+    def createCustomMagnetDetails(self, holeVector: Vector = None) -> list[MagnetDetails]:
+        cornerMagnets = self.createCornerMagnetDetails(self.dimensions.magnets.getWiderBaseRadius(), holeVector)
+        middleMagnets = [MagnetDetails(Vector(self.dimensions.length / 4 * (i + 0.5), self.dimensions.width / 2), holeVector=holeVector) for i in range(4)]
 
         return cornerMagnets + middleMagnets
 

@@ -7,7 +7,7 @@ from Part import Solid
 
 from common.fuser import Fuser
 from common.geometry import Side, shiftVector
-from common.magnets import MagnetDetails, RampDetails
+from common.magnets import MagnetDetails, RampDetails, CornerAngles
 from common.pencil import Pencil
 from common.smartsolid import SmartSolid
 
@@ -114,8 +114,6 @@ class SmartBox(SmartSolid):
         ledge = self.createLedge(side, coefficient, thickness)
         cylinders = self.createEllipticalCylinders(coefficient, thickness)
         cylinderLedge = ledge.common(cylinders).translate(Vector(0, 0, (height or self.height) - thickness))
-        # feature = Part.show(cylinders)
-        # feature.ViewObject.ShapeColor = (0.2, 0.8, 0.8)
         self.solid = self.solid.cut(cylinderLedge)
 
     def createEllipticalCylinder(self, x: float, y: float, z: float, coefficient: float, thickness: float) -> Solid:
@@ -150,8 +148,6 @@ class SmartBox(SmartSolid):
             case Side.E:
                 return Part.makeBox(self.length * coefficient, self.width, thickness, Vector(self.xTo - self.length * coefficient, self.y, self.z))
 
-        raise ValueError(f"Unexpected side: ${side}")
-
     def getTranslateVector(self, side: Side, height: float) -> Vector:
         match side:
             case Side.S:
@@ -165,12 +161,17 @@ class SmartBox(SmartSolid):
 
         raise ValueError(f"Unexpected side: ${side}")
 
-    # def createCornerMagnetDetails(self, widerRadius: float, count: int = 1) -> list[MagnetDetails]:
-    #     return [self.createMagnetDetails(row, column, 2, 2, widerRadius, CornerAngleType.MIN, None, count) for row in range(2) for column in range(2)]
+    def createCornerMagnetDetails(self, widerRadius: float, holeVector: Vector = None) -> list[MagnetDetails]:
+        return [
+            self.createMagnetDetails(0, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NE), holeVector=holeVector),
+            self.createMagnetDetails(0, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NW), holeVector=holeVector),
+            self.createMagnetDetails(1, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SE), holeVector=holeVector),
+            self.createMagnetDetails(1, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SW), holeVector=holeVector),
+        ]
 
     def createMagnetDetails(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] = None, cutAngle: list[int] = None, ramp: RampDetails = None,
-                            cornerHeight: float = None, magnetCount: int = 1, adjacentToWidening: bool = True):
+                            cornerHeight: float = None, adjacentToWidening: bool = True, holeVector: Vector = None, z: float = 0):
         x = max(min(column * self.length / (columnCount - 1), self.length - widerRadius), widerRadius)
         y = max(min(row * self.width / (rowCount - 1), self.width - widerRadius), widerRadius)
 
-        return MagnetDetails(Vector(x, y), magnetCount, cornerAngle, cutAngle, cornerHeight, ramp, adjacentToWidening)
+        return MagnetDetails(Vector(x, y, z), cornerAngle, cutAngle, cornerHeight, ramp, adjacentToWidening, holeVector)

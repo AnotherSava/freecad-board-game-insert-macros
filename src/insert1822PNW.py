@@ -3,7 +3,6 @@ import importlib
 import FreeCAD
 
 from common import freecad
-from inserts.cubebox import CubeBox
 
 importlib.reload(freecad)
 from common.freecad import reloadProjectModules, clearLogs, closeAllDocuments
@@ -12,6 +11,8 @@ clearLogs()
 closeAllDocuments()
 reloadProjectModules()
 
+from inserts.cubebox import CubeBox
+from inserts.markerbox import MarkerBox
 from inserts.cardbox import CardBox
 from common.magnets import MAGNET_3x3
 from inserts.common.meshlid import MeshLidDimensions
@@ -154,8 +155,8 @@ cubeBoxDimensions = cubebox.CubeBoxDimensions(
         fillCorners=True,
         minimalMeshHeight=0.8,
         fillHandleSides=True,
-        hexCountLength=28,
-        # hexCountLength=16,
+        # hexCountLength=28,
+        hexCountLength=16,
         recessLengthCoefficient = 1,
         recessWidthCoefficient = 1,
         slopeLengthCoefficient=0,
@@ -229,8 +230,8 @@ exportItems = [
     # ExportObject("marker-box", lambda: MarkerBox(markerBoxDimensions, document).createBox()),
     # ExportObject("marker-lid", lambda: MarkerBox(markerBoxDimensions, document).createLid()),
     # ExportObject("card-box", lambda: CardBox(cardBoxDimensions).createBox()),
-    ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
-    # ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
+    # ExportObject("cube-box", lambda: CubeBox(cubeBoxDimensions).createBox()),
+    ExportObject("cube-lid", lambda: CubeBox(cubeBoxDimensions).createLid()),
     # ExportObject("company-box-x7", lambda: CompanyBox(companyBoxDimensions).createBox()),
     # ExportObject("tile-lid-x5", lambda: CondensedBoard(gridDimensions, 8).createLid())
 ]

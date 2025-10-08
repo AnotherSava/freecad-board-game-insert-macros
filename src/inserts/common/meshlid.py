@@ -104,9 +104,9 @@ class MeshLid(SmartSolid):
 
     def createLid(self, magnetDetails: Iterable[MagnetDetails]) -> MultiColourFuser:
         recessInner, handle = self.createHandle()
-        magnetBases, magnetHoles, corners = adjust(self.dimensions.height, True, *createMagnetHolders(self.dimensions.magnets, False, self.dimensions.wallHeight, magnetDetails))
+        magnetBases, magnetHoles, cornersToCut = adjust(self.dimensions.height, True, *createMagnetHolders(self.dimensions.magnets, self.dimensions.wallHeight, magnetDetails))
 
-        fuser = Fuser(self.createLidMesh(), magnetBases, corners).cut(recessInner).fuse(handle).cut(magnetHoles)
+        fuser = Fuser(self.createLidMesh(), magnetBases, cornersToCut).cut(recessInner).fuse(handle).cut(magnetHoles)
         return MultiColourFuser(Colour.BASE, fuser)
 
     def createRecess(self, length: float, width: float, height) -> Fuser:

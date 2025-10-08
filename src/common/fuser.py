@@ -1,3 +1,4 @@
+import FreeCAD
 from FreeCAD import Vector
 
 from abc import ABC, abstractmethod
@@ -60,14 +61,38 @@ class Fuser:
             self.solid.rotate(centre, axis, angle)
         return self
 
+    def rotateZ(self, angle: float, centre: Vector = None) -> 'Fuser':
+        if self.solid:
+            self.solid.rotate(centre or Vector(), Vector(0, 0, 1), angle)
+        return self
+
+    def rotateY(self, angle: float, centre: Vector = None) -> 'Fuser':
+        if self.solid:
+            self.solid.rotate(centre or Vector(), Vector(0, 1, 0), angle)
+        return self
+
+    def rotateX(self, angle: float, centre: Vector = None) -> 'Fuser':
+        if self.solid:
+            self.solid.rotate(centre or Vector(), Vector(1, 0, 0), angle)
+        return self
+
     def mirrorX(self):
-        self.solid = self.solid.mirror(Vector(), Vector(1, 0, 0))  # invert X axis
+        if self.solid:
+            matrix = FreeCAD.Matrix()
+            matrix.scale(-1, 1, 1)
+            self.solid = self.solid.transformGeometry(matrix)
         return self
 
     def mirrorY(self):
-        self.solid = self.solid.mirror(Vector(), Vector(0, 1, 0))  # invert Y axis
+        if self.solid:
+            matrix = FreeCAD.Matrix()
+            matrix.scale(1, -1, 1)
+            self.solid = self.solid.transformGeometry(matrix)
         return self
 
     def mirrorZ(self):
-        self.solid = self.solid.mirror(Vector(), Vector(0, 0, 1))  # invert Y axis
+        if self.solid:
+            matrix = FreeCAD.Matrix()
+            matrix.scale(1, 1, -1)
+            self.solid = self.solid.transformGeometry(matrix)
         return self

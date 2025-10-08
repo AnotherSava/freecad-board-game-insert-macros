@@ -67,7 +67,7 @@ class BitHolder:
             fuser.cut(solid)
             fuser.cut(solid.translate(-self.dimensions.roundedLength))
 
-            magnetHoles = createMagnetHoles(self.dimensions.magnetDimensions, False, self.createMagnetDetails(Vector(1, 0, 0)))
+            magnetHoles = createMagnetHoles(self.dimensions.magnetDimensions, self.createMagnetDetails(Vector(1, 0, 0)))
             magnetHoles.translate(self.dimensions.getRowStart(row) + Vector(solid.length))
             fuserMagnetHoles.fuse(magnetHoles)
 
@@ -175,7 +175,7 @@ class BitHolder:
         fuser = Fuser(self.createSingleHole().translate(Vector(self.getPositionX(i), self.dimensions.shortDiagonal / 2)) for i in range(count))
 
         magnetDetails = self.createMagnetDetails(Vector(-1, 0, 0))
-        magnetHoles = createMagnetHoles(self.dimensions.magnetDimensions, False, magnetDetails)
+        magnetHoles = createMagnetHoles(self.dimensions.magnetDimensions, magnetDetails)
         magnetHoles.translate(Vector(self.dimensions.getLength(count)))
 
         fuser.fuse(magnetHoles)

@@ -44,10 +44,9 @@ document = FreeCAD.newDocument('BitHolder')
 
 
 exportItems = [
-    # *[ExportObject(f"bit-holder-{length}", lambda r=row, l=length: BitHolder(bitHolderDimensions).createRow(r, l)) for row, length in enumerate(bitHolderDimensions.rowLengths[:1])],
-    # *[ExportObject(f"bit-holder-{length}", lambda r=row, l=length: BitHolder(bitHolderDimensions).createRow(r, l)) for row, length in enumerate(bitHolderDimensions.rowLengths)],
+    *[ExportObject(f"bit-holder-{length}", lambda r=row, l=length: BitHolder(bitHolderDimensions).createRow(r, l)) for row, length in enumerate(bitHolderDimensions.rowLengths)],
     ExportObject(f"bit-holder-special", lambda: BitHolder(bitHolderDimensions).createSpecial()),
-    # ExportObject(f"bit-holder-box", lambda: BitHolder(bitHolderDimensions).createHolder())
+    ExportObject(f"bit-holder-box", lambda: BitHolder(bitHolderDimensions).createHolder())
 ]
 
 
@@ -63,5 +62,5 @@ FreeCAD.Gui.activeDocument().activeView().viewTop()
 exporter = Exporter("D:\\projects\\3d\\FreeCAD\\models\\Bit Holder", *exportItems)
 # exporter.withBound(SmartBox(10.5, 100, 100).translate(1.5))
 # exporter.show(10)
-exporter.export(10)
-# exporter.publish()
+# exporter.export(10)
+exporter.publish()
