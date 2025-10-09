@@ -25,8 +25,9 @@ class CubeBoxDimensions:
     wallThickness: float
 
     def __post_init__(self):
-        self.lid.length = self.length
-        self.lid.width = self.width
+        self.lid.length = self.length - self.lid.magnets.getWideningRadiusDelta() * 2
+        self.lid.width = self.width - self.lid.magnets.getWideningRadiusDelta() * 2
+        self.lid.position = Vector(self.lid.magnets.getWideningRadiusDelta(), self.lid.magnets.getWideningRadiusDelta())
 
 
 # Holder for the following items: minor company stations and stock markers, company charters (as a lid)
@@ -39,7 +40,7 @@ class CubeBox(SmartBox):
         self.box.translate(self.dimensions.magnets.getRadiusWideningAmount(), self.dimensions.magnets.getRadiusWideningAmount())
 
     def createBox(self) -> MultiColourFuser:
-        magnetDetails = self.createCustomMagnetDetails(self.box.zTo, Vector(0, 0, -1), self.box.height - self.dimensions.gapHeight)
+        magnetDetails = self.createCustomMagnetDetails(False)
         magnetBases, magnetHoles, cornersToCut = createMagnetHolders(self.dimensions.magnets, self.dimensions.height, magnetDetails)
 
         fuser = Fuser(self.box)
@@ -50,7 +51,7 @@ class CubeBox(SmartBox):
     def createLid(self) -> MultiColourFuser:
         lid = MeshLid(self.dimensions.lid)
 
-        magnetDetails = self.createCustomMagnetDetails(0, Vector(0, 0, 1))
+        magnetDetails = self.createCustomMagnetDetails(True)
 
         return lid.createLid(magnetDetails)
 
@@ -63,15 +64,18 @@ class CubeBox(SmartBox):
         pencil.up(self.dimensions.gapHeight)
         return Fuser(pencil.extrudeX(self.dimensions.length, Vector(0, self.box.yTo, self.box.zTo)))
 
-    def createCustomMagnetDetails(self, z: float, holeVector: Vector, cornerHeight: float = None):
+    def createCustomMagnetDetails(self, lid: bool):
+        holeVector = Vector(0, 0, -1)
         widerRadius = self.dimensions.magnets.getWiderBaseRadius()
+        z = self.dimensions.lid.height if lid else self.box.zTo
+        cornerHeight = None if lid else self.box.height - self.dimensions.gapHeight
 
         return [
-            self.createMagnetDetails(0, 0, 2, 2, widerRadius, None, [CornerAngles.SW], None, cornerHeight, True, holeVector, z),
-            self.createMagnetDetails(0, 1, 2, 2, widerRadius, None, [CornerAngles.SE], None, cornerHeight, True, holeVector, z),
+            self.createMagnetDetails(0, 0, 2, 2, widerRadius, None, [CornerAngles.SW], None, cornerHeight, True, holeVector, z, CornerAngles.NE.value if lid else None),
+            self.createMagnetDetails(0, 1, 2, 2, widerRadius, None, [CornerAngles.SE], None, cornerHeight, True, holeVector, z, CornerAngles.NW.value if lid else None),
 
-            self.createMagnetDetails(1, 0, 2, 2, widerRadius, [CornerAngles.NE], [CornerAngles.NW], None, cornerHeight, True, holeVector, z),
-            self.createMagnetDetails(1, 1, 2, 2, widerRadius, [CornerAngles.NW], [CornerAngles.NE], None, cornerHeight, True, holeVector, z)
+            self.createMagnetDetails(1, 0, 2, 2, widerRadius, [CornerAngles.NE], [CornerAngles.NW], None, cornerHeight, True, holeVector, z, CornerAngles.SE.value if lid else None),
+            self.createMagnetDetails(1, 1, 2, 2, widerRadius, [CornerAngles.NW], [CornerAngles.NE], None, cornerHeight, True, holeVector, z, CornerAngles.SW.value if lid else None)
         ]
 
     def createWall(self) -> SmartSolid:

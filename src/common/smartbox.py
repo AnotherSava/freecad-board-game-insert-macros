@@ -161,17 +161,17 @@ class SmartBox(SmartSolid):
 
         raise ValueError(f"Unexpected side: ${side}")
 
-    def createCornerMagnetDetails(self, widerRadius: float, holeVector: Vector = None) -> list[MagnetDetails]:
+    def createCornerMagnetDetails(self, widerRadius: float, holeVector: Vector = None, wideningAngle: float = None) -> list[MagnetDetails]:
         return [
-            self.createMagnetDetails(0, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NE), holeVector=holeVector),
-            self.createMagnetDetails(0, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NW), holeVector=holeVector),
-            self.createMagnetDetails(1, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SE), holeVector=holeVector),
-            self.createMagnetDetails(1, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SW), holeVector=holeVector),
+            self.createMagnetDetails(0, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NE), holeVector=holeVector, wideningAngle=wideningAngle),
+            self.createMagnetDetails(0, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.NW), holeVector=holeVector, wideningAngle=wideningAngle),
+            self.createMagnetDetails(1, 0, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SE), holeVector=holeVector, wideningAngle=wideningAngle),
+            self.createMagnetDetails(1, 1, 2, 2, widerRadius, CornerAngles.allBut(CornerAngles.SW), holeVector=holeVector, wideningAngle=wideningAngle),
         ]
 
     def createMagnetDetails(self, row: int, column: int, rowCount: int, columnCount: int, widerRadius: float, cornerAngle: list[int] = None, cutAngle: list[int] = None, ramp: RampDetails = None,
-                            cornerHeight: float = None, adjacentToWidening: bool = True, holeVector: Vector = None, z: float = 0):
+                            cornerHeight: float = None, adjacentToWidening: bool = True, holeVector: Vector = None, z: float = 0, wideningAngle: float = None):
         x = max(min(column * self.length / (columnCount - 1), self.length - widerRadius), widerRadius)
         y = max(min(row * self.width / (rowCount - 1), self.width - widerRadius), widerRadius)
 
-        return MagnetDetails(Vector(x, y, z), cornerAngle, cutAngle, cornerHeight, ramp, adjacentToWidening, holeVector)
+        return MagnetDetails(Vector(x, y, z), cornerAngle, cutAngle, cornerHeight, ramp, adjacentToWidening, holeVector, wideningAngle)

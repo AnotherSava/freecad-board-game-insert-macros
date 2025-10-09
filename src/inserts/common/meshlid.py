@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import Part
 from FreeCAD import Vector
@@ -8,11 +8,11 @@ from FreeCAD import Vector
 from common.colours import MultiColourFuser, Colour
 from common.fuser import Fuser
 from common.hexagon import Hexagon, HexagonConfiguration, HexTileVertices, getDistanceY
-from common.magnets import MagnetDetails, MagnetDimensions, createMagnetHolders, adjust
+from common.magnets import MagnetDetails, MagnetDimensions, createMagnetHolders
+from common.math import advancedRound
 from common.primitives import createTaperedBox
 from common.smartbox import SmartBox
 from common.smartsolid import SmartSolid
-from common.math import advancedRound
 
 
 @dataclass
@@ -34,6 +34,7 @@ class MeshLidDimensions:
     length: float = None
     width: float = None
     height: float = None
+    position: Vector = None
     innerSpaceHeight: float = None
     wallHeight: float = None
 
@@ -55,22 +56,22 @@ class MeshLidDimensions:
 
 class MeshLid(SmartSolid):
     def __init__(self, dimensions: MeshLidDimensions):
-        super().__init__(dimensions.length, dimensions.width, dimensions.height)
+        super().__init__(dimensions.length, dimensions.width, dimensions.height, dimensions.position.x, dimensions.position.y, dimensions.position.z)
 
         self.dimensions = dimensions
 
         self.internalMesh = SmartBox(self.dimensions.length - self.dimensions.wallThickness * 2, self.dimensions.width - self.dimensions.wallThickness * 2, self.dimensions.getMeshHeight())
-        self.internalMesh.translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.height - self.dimensions.wallHeight)
+        self.internalMesh.translateVector(self.dimensions.position).translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.height - self.dimensions.wallHeight)
 
         self.outerMesh = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.getMeshHeight())
-        self.outerMesh.translate(0, 0, self.dimensions.height - self.dimensions.wallHeight)
+        self.outerMesh.translateVector(self.dimensions.position).translate(0, 0, self.dimensions.height - self.dimensions.wallHeight)
 
         self.spaceBelow = None
         if self.dimensions.innerSpaceHeight:
             self.spaceBelow = SmartBox(self.dimensions.length - self.dimensions.wallThickness * 2, self.dimensions.width - self.dimensions.wallThickness * 2, self.dimensions.innerSpaceHeight)
-            self.spaceBelow.translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.getMeshHeight())
+            self.spaceBelow.translateVector(self.dimensions.position).translate(self.dimensions.wallThickness, self.dimensions.wallThickness, self.dimensions.getMeshHeight())
 
-        self.externalBox = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height)
+        self.externalBox = SmartBox(self.dimensions.length, self.dimensions.width, self.dimensions.height).translateVector(self.dimensions.position)
         self.internalMeshHex = Hexagon(self.dimensions.getHexShortDiagonal(), self.dimensions.getMeshHeight())
 
         baseDistanceY = getDistanceY(self.dimensions.getHexShortDiagonal(), self.dimensions.gridThickness)
@@ -83,14 +84,12 @@ class MeshLid(SmartSolid):
 
         self.hexConfiguration = HexagonConfiguration().withRays(offsetY, HexTileVertices.N, HexTileVertices.S)
 
-    def createMeshHex(self, row: int, column: int) -> Part.Solid:
-        startingHexX = self.dimensions.wallThickness -self.dimensions.gridThickness / 2
-        startingHexY = self.dimensions.wallThickness
+    def createMeshHex(self, row: int, column: int) -> Fuser:
+        startingHexX = self.internalMesh.x - self.dimensions.gridThickness / 2
+        x = startingHexX + (self.dimensions.getHexShortDiagonal() + self.dimensions.gridThickness) * (column + row % 2 / 2)
+        y = self.internalMesh.y + self.distanceY * row
 
-        solid = self.internalMeshHex.createRaySolid(self.hexConfiguration)
-        solid.translate(Vector(startingHexX + (self.dimensions.getHexShortDiagonal() + self.dimensions.gridThickness) * (column + row % 2 / 2), startingHexY + self.distanceY * row, self.dimensions.height - self.dimensions.wallHeight))
-
-        return solid
+        return Fuser(self.internalMeshHex.createRaySolid(self.hexConfiguration)).translate(Vector(x, y, self.internalMesh.z))
 
     def createLidMesh(self) -> Fuser:
         print(f"Mesh lid: rows = {self.fullRowCount}, columns = {self.dimensions.getHexCountLength()}")
@@ -104,9 +103,9 @@ class MeshLid(SmartSolid):
 
     def createLid(self, magnetDetails: Iterable[MagnetDetails]) -> MultiColourFuser:
         recessInner, handle = self.createHandle()
-        magnetBases, magnetHoles, cornersToCut = adjust(self.dimensions.height, True, *createMagnetHolders(self.dimensions.magnets, self.dimensions.wallHeight, magnetDetails))
+        magnetBases, magnetHoles, cornersToCut = createMagnetHolders(self.dimensions.magnets, self.dimensions.wallHeight, magnetDetails)
 
-        fuser = Fuser(self.createLidMesh(), magnetBases, cornersToCut).cut(recessInner).fuse(handle).cut(magnetHoles)
+        fuser = Fuser(self.createLidMesh()).cut(cornersToCut).fuse(magnetBases).cut(recessInner).fuse(handle).cut(magnetHoles)
         return MultiColourFuser(Colour.BASE, fuser)
 
     def createRecess(self, length: float, width: float, height) -> Fuser:
@@ -131,9 +130,9 @@ class MeshLid(SmartSolid):
         slopeWidth = hexesCoveredY * self.distanceY + halfHexesCoveredY * self.internalMeshHex.getSide()
         taperBox = createTaperedBox(length, width, height, length - slopeLength * 2, width - slopeWidth * 2)
 
-        return Fuser(taperBox).translate(Vector(self.dimensions.length / 2, self.dimensions.width / 2, self.dimensions.height - self.dimensions.wallHeight))
+        return Fuser(taperBox).translate(self.dimensions.position).translate(Vector(self.dimensions.length / 2, self.dimensions.width / 2, self.dimensions.height - self.dimensions.wallHeight))
 
-    def getRecessDimensions(self) -> (float, float):
+    def getRecessDimensions(self) -> Tuple[float, float]:
         baseRecessLength = self.dimensions.length * self.dimensions.recessLengthCoefficient
         baseRecessWidth = self.dimensions.width * self.dimensions.recessWidthCoefficient
 
@@ -148,29 +147,28 @@ class MeshLid(SmartSolid):
 
         return recessLength, recessWidth
 
-    def createHandle(self) -> (Fuser, Fuser):
+    def createHandle(self) -> Tuple[Fuser, Fuser]:
         recessLength, recessWidth = self.getRecessDimensions()
 
         recess = self.createRecess(recessLength, recessWidth, self.dimensions.getMeshHeight() - self.dimensions.minimalMeshHeight)
 
         handleWidth = recessWidth + self.internalMeshHex.getSide()
-        handleCentre = Vector(self.length / 2, (self.dimensions.width - handleWidth) / 2, self.dimensions.handleRadius / 3 * 2)
-        roundedHandle = Fuser()
-        roundedHandle.fuse(Part.makeCylinder(self.dimensions.handleRadius, handleWidth, handleCentre, Vector(0, 1, 0)))
-        roundedHandle.fuse(Part.makeSphere(self.dimensions.handleRadius, handleCentre))
-        roundedHandle.fuse(Part.makeSphere(self.dimensions.handleRadius, handleCentre + Vector(0, handleWidth, 0)))
+        handleStartingPosition = Vector(self.length / 2, (self.dimensions.width - handleWidth) / 2, self.dimensions.handleRadius / 3 * 2) + self.dimensions.position
+
+        roundedHandle = Fuser(Part.makeSphere(self.dimensions.handleRadius, Vector(0, shiftY, 0)) for shiftY in [0, handleWidth])
+        roundedHandle.fuse(Part.makeCylinder(self.dimensions.handleRadius, handleWidth, Vector(), Vector(0, 1, 0)))
+        roundedHandle.translate(handleStartingPosition)
         roundedHandle.common(self.externalBox.solid)
 
-
         handle = SmartBox(self.dimensions.wallThickness, handleWidth, self.externalBox.height)
-        handle.translate((self.dimensions.length - handle.length) / 2, (self.dimensions.width - handle.width) / 2)
-
-        deltaHexes = (self.fullRowCount - self.hexesCoveredY) / 2
-
-        hexBottom = self.createMeshHex(deltaHexes - 1, math.floor(self.dimensions.getHexCountLength() / 2))
-        hexTop = self.createMeshHex(self.fullRowCount - deltaHexes + 1, math.floor(self.dimensions.getHexCountLength() / 2))
+        handle.translate(-handle.length / 2, 0, -self.dimensions.handleRadius / 3 * 2)
+        handle.translateVector(handleStartingPosition)
 
         fullHandle = Fuser(handle, roundedHandle)
+
+        deltaHexes = (self.fullRowCount - self.hexesCoveredY) / 2
+        hexBottom = self.createMeshHex(deltaHexes - 1, math.floor(self.dimensions.getHexCountLength() / 2))
+        hexTop = self.createMeshHex(self.fullRowCount - deltaHexes + 1, math.floor(self.dimensions.getHexCountLength() / 2))
 
         if self.dimensions.fillHandleSides:
             fullHandle.fuse(hexTop, hexBottom).common(self.externalBox)

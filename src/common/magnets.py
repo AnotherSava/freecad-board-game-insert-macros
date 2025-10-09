@@ -1,6 +1,8 @@
 import math
+from math import cos, sin, pi, asin, degrees
 from dataclasses import dataclass
 from enum import IntEnum
+from math import radians
 from typing import Iterable, Tuple
 
 import FreeCAD
@@ -8,6 +10,7 @@ import Part
 from FreeCAD import Vector
 
 from common.fuser import Fuser
+from common.geometry import createVector
 from common.pencil import Pencil
 from constants import nozzleSize, tolerance, magnet3Diameter, magnet3x3height, magnet2Diameter, magnet2x3height, magnet3x2height
 
@@ -52,6 +55,9 @@ class MagnetDimensions:
     def withMagnetCount(self, count: int) -> 'MagnetDimensions':
         self.magnetCount = count
         return self
+
+    def getWideningRadiusDelta(self):
+        return self.diameter * (wideningCoefficient - 1) / 2
 
     def getBaseRadius(self):
         return self.getHoleRadius() + self.thinnestWall
@@ -100,6 +106,7 @@ class MagnetDetails:
     ramp: RampDetails = None
     adjacentToWidening: bool = True
     holeVector: Vector = None
+    wideningAngle: float = None
 
 
 def getWidestRadius(magnetDiameter: float, delta: float = 0):
@@ -111,12 +118,12 @@ def createHalfCurve(dimensions: MagnetDimensions, details: MagnetDetails, baseHe
         radius = dimensions.getWiderBaseRadius() if details.adjacentToWidening else dimensions.getBaseRadius()
         rampLength = radius * details.ramp.lengthMultiplier
         height = baseHeight if details.adjacentToWidening else baseHeight - dimensions.getWideningHeight()
-        d = radius * math.sin(details.ramp.centreAdjustment * math.pi / 2) - details.ramp.wallThickness * (details.ramp.centreAdjustment - side) / 2
+        d = radius * sin(details.ramp.centreAdjustment * pi / 2) - details.ramp.wallThickness * (details.ramp.centreAdjustment - side) / 2
         pencil = Pencil(Vector(d, rampLength))
         if details.ramp.centreAdjustment != side:
             r = (rampLength * rampLength + d * d - dimensions.getBaseRadius() * dimensions.getBaseRadius()) / (2 * dimensions.getBaseRadius() - 2 * d * side)
-            rampAngle = math.asin(rampLength / (r + dimensions.getBaseRadius()))
-            pencil.arcWithRadius(r, -90 * side, math.degrees(rampAngle) * side)
+            rampAngle = asin(rampLength / (r + dimensions.getBaseRadius()))
+            pencil.arcWithRadius(r, -90 * side, degrees(rampAngle) * side)
             pencil.jumpTo(Vector(d, 0))
             fuser.fuse(pencil.extrude(height))
 
@@ -132,7 +139,7 @@ def createMagnetBaseCorners(dimensions: MagnetDimensions, baseHeight: float, ang
     return orient(fuser.translate(Vector(0, 0, baseHeight - height)), details)
 
 def createMagnetBase(dimensions: MagnetDimensions, baseHeight: float, details: MagnetDetails) -> Fuser:
-    fuser = orient(createWideningCylinder(dimensions, True, baseHeight), details)
+    fuser = createWideningCylinder(dimensions, True, details, baseHeight)
 
     if details.ramp:
         fuser.fuse(createHalfCurve(dimensions, details, baseHeight))
@@ -141,37 +148,44 @@ def createMagnetBase(dimensions: MagnetDimensions, baseHeight: float, details: M
 
     return fuser.fuse(baseCorners)
 
-def createWideningCylinder(dimensions: MagnetDimensions, base: bool, fixedHeight: float = None) -> Fuser:
+def createWideningCylinder(dimensions: MagnetDimensions, base: bool, details: MagnetDetails, fixedHeight: float = None) -> Fuser:
     radius = dimensions.getBaseRadius() if base else dimensions.getHoleRadius()
-    widerRadius = dimensions.getWiderBaseRadius() if base else dimensions.getWiderHoleRadius()
 
     narrowPartHeight = (fixedHeight or dimensions.height * dimensions.magnetCount) - dimensions.getWideningHeight()
     assert narrowPartHeight > 0, f"fixedHeight: {fixedHeight}, magnetHeight: {dimensions.height}, count: {dimensions.magnetCount}, widePartHeight: {dimensions.getWideningHeight()}"
 
-    widePart = Part.makeCone(widerRadius, radius, dimensions.getWideningHeight())
+    widePart = createWideningPart(dimensions, base, details)
 
     narrowPart = Part.makeCylinder(radius, narrowPartHeight)
     narrowPart.translate(Vector(0, 0, dimensions.getWideningHeight()))
 
-    return Fuser(narrowPart, widePart)
+    return orient(Fuser(narrowPart, widePart), details)
+
+def createWideningPart(dimensions: MagnetDimensions, base: bool, details: MagnetDetails) -> Part.Shape:
+    radius = dimensions.getBaseRadius() if base else dimensions.getHoleRadius()
+    widerRadius = dimensions.getWiderBaseRadius() if base else dimensions.getWiderHoleRadius()
+
+    if details.wideningAngle is None:
+        return Part.makeCone(widerRadius, radius, dimensions.getWideningHeight())
+
+    topWire = Part.makeCircle(radius).translate(Vector(0, 0, dimensions.getWideningHeight()))
+    delta = dimensions.getWideningRadiusDelta()
+    pencil = Pencil(Vector(radius + delta, -delta) + createVector(delta / cos(radians(45)), details.wideningAngle))
+    for i in range(4):
+        pencil.draw(delta * 2, i * 90)
+        pencil.arcWithRadius(radius, (i + 1) * 90, 90)
+    bottomWire = pencil.createWire()
+
+    return Part.makeLoft([bottomWire, topWire], True)
 
 def orient(fuser: Fuser, details: MagnetDetails) -> Fuser:
     if details.holeVector and details.holeVector.normalize().isEqual(Vector(0, 0, -1), 1e-6):
         fuser.mirrorZ()
     elif details.holeVector:
         rotation = FreeCAD.Rotation(Vector(0, 0, 1), details.holeVector)
-        fuser.rotate(Vector(), rotation.Axis, math.degrees(rotation.Angle))
+        fuser.rotate(Vector(), rotation.Axis, degrees(rotation.Angle))
 
     return fuser.translate(details.centre)
-
-def adjust(height: float, mirrorZ: bool = False, *args: Fuser) -> Tuple[Fuser, Fuser, Fuser]:
-    for element in args:
-        if element is not None:
-            if mirrorZ:
-                element.mirrorZ()
-            element.translate(Vector(0, 0, height))
-
-    return args
 
 def createMagnetHolders(dimensions: MagnetDimensions, baseHeight: float, magnetDetails: Iterable[MagnetDetails]) -> Tuple[Fuser, Fuser, Fuser]:
     magnetDetailsList = list(magnetDetails)
@@ -186,7 +200,7 @@ def createMagnetBases(dimensions: MagnetDimensions, baseHeight: float, magnetDet
     return bases, cornersToCut
 
 def createMagnetHole(dimensions: MagnetDimensions, base: bool, details: MagnetDetails) -> Fuser:
-    return orient(createWideningCylinder(dimensions, base), details)
+    return createWideningCylinder(dimensions, base, details)
 
 def createMagnetHoles(dimensions: MagnetDimensions, magnetDetailsList: Iterable[MagnetDetails]) -> Fuser:
     return Fuser(createMagnetHole(dimensions, False, magnetDetails) for magnetDetails in magnetDetailsList)
